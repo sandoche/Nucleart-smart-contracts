@@ -94,4 +94,6 @@ typings/
 # DynamoDB Local files
 .dynamodb/
 
+#Hardhat files
 cache
+artifacts
