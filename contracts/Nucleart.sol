@@ -6,15 +6,19 @@ import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721URISto
 import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721BurnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/cryptography/draft-EIP712Upgradeable.sol";
 
 contract Nucleart is
     Initializable,
     ERC721Upgradeable,
     ERC721URIStorageUpgradeable,
     ERC721BurnableUpgradeable,
-    AccessControlUpgradeable
+    AccessControlUpgradeable,
+    EIP712Upgradeable
 {
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
+    string private constant SIGNING_DOMAIN = "Nucleart-Voucher";
+    string private constant SIGNATURE_VERSION = "1";
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() initializer {}
@@ -24,6 +28,7 @@ contract Nucleart is
         __ERC721URIStorage_init();
         __ERC721Burnable_init();
         __AccessControl_init();
+        __EIP712_init(SIGNING_DOMAIN, SIGNATURE_VERSION);
 
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(MINTER_ROLE, msg.sender);
