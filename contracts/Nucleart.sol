@@ -102,6 +102,10 @@ contract Nucleart is
         return 0.001 * 10**18;
     }
 
+    function getRemainingNucleart() public view returns (uint256) {
+        return MAX_SUPPLY - totalSupply();
+    }
+
     /// @notice Returns a hash of the given NFTVoucher, prepared using EIP712 typed data hashing rules.
     /// @param voucher An NFTVoucher to hash.
     function _hash(NFTVoucher calldata voucher)
