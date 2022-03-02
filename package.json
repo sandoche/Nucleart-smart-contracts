@@ -1,0 +1,10 @@
+{
+  "name": "nucleart-smart-contracts",
+  "scripts": {
+    "test": "hardhat test",
+    "compile": "hardhat compile"
+  },
+  "devDependencies": {
+    "hardhat": "^2.9.0"
+  }
+}
