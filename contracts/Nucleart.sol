@@ -23,6 +23,9 @@ contract Nucleart is
     string private constant SIGNING_DOMAIN = "Nucleart-Voucher";
     string private constant SIGNATURE_VERSION = "1";
 
+    // Max supply based on the number of Nuclear Warhead available in January 2021, source: https://www.statista.com/statistics/264435/number-of-nuclear-warheads-worldwide/
+    uint256 public constant MAX_SUPPLY = 13080;
+
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() initializer {}
 
@@ -66,6 +69,12 @@ contract Nucleart is
 
         // make sure that the redeemer is paying enough to cover the buyer's cost
         require(msg.value >= getCurrentPrice(), "Insufficient funds to redeem");
+
+        // make sure that we didn't overpass the max supply
+        require(
+            totalSupply() < MAX_SUPPLY,
+            "All the nucleart warheads have been used"
+        );
 
         // first assign the token to the signer, to establish provenance on-chain
         _lazyMint(signer, voucher.tokenId, voucher.uri);
