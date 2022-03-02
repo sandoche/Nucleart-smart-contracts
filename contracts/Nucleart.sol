@@ -2,6 +2,7 @@
 pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721EnumerableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721URIStorageUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721BurnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
@@ -12,6 +13,7 @@ import "@openzeppelin/contracts-upgradeable/utils/cryptography/ECDSAUpgradeable.
 contract Nucleart is
     Initializable,
     ERC721Upgradeable,
+    ERC721EnumerableUpgradeable,
     ERC721URIStorageUpgradeable,
     ERC721BurnableUpgradeable,
     AccessControlUpgradeable,
@@ -127,6 +129,14 @@ contract Nucleart is
 
     // The following functions are overrides required by Solidity.
 
+    function _beforeTokenTransfer(
+        address from,
+        address to,
+        uint256 tokenId
+    ) internal override(ERC721Upgradeable, ERC721EnumerableUpgradeable) {
+        super._beforeTokenTransfer(from, to, tokenId);
+    }
+
     function _burn(uint256 tokenId)
         internal
         override(ERC721Upgradeable, ERC721URIStorageUpgradeable)
@@ -146,7 +156,11 @@ contract Nucleart is
     function supportsInterface(bytes4 interfaceId)
         public
         view
-        override(ERC721Upgradeable, AccessControlUpgradeable)
+        override(
+            ERC721Upgradeable,
+            ERC721EnumerableUpgradeable,
+            AccessControlUpgradeable
+        )
         returns (bool)
     {
         return super.supportsInterface(interfaceId);
