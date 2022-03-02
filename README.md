@@ -7,5 +7,5 @@
 - Mintable
 - Burnable
 - URI Storage
-- Ownable
+- Roles
 - Upgradable (Transparent)
