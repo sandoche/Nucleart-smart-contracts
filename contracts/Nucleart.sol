@@ -25,6 +25,9 @@ contract Nucleart is
 
     // Max supply based on the number of Nuclear Warhead available in January 2021, source: https://www.statista.com/statistics/264435/number-of-nuclear-warheads-worldwide/
     uint256 public constant MAX_SUPPLY = 13080;
+    uint8 public constant MAX_LEVEL = 5;
+
+    mapping(bytes32 => uint8) private _tokenUriHashToLevel;
 
     constructor(address payable minter)
         ERC721("Nucleart", "NART")
@@ -75,6 +78,13 @@ contract Nucleart is
             "All the nucleart warheads have been used"
         );
 
+        // make sure the level is not above the limit then upgrade level
+        require(
+            getLevelFromUri(voucher.uri) < MAX_LEVEL,
+            "This NFT reached its maximum level of radioactivity"
+        );
+        _setOrUpgradeVersion(voucher.uri);
+
         // first assign the token to the signer, to establish provenance on-chain
         _lazyMint(signer, voucher.tokenId, voucher.uri);
 
@@ -107,9 +117,7 @@ contract Nucleart is
             _hashTypedDataV4(
                 keccak256(
                     abi.encode(
-                        keccak256(
-                            "NFTVoucher(uint256 tokenId,uint256 minPrice,string uri)"
-                        ),
+                        keccak256("NFTVoucher(uint256 tokenId,string uri)"),
                         voucher.tokenId,
                         keccak256(bytes(voucher.uri))
                     )
@@ -193,5 +201,28 @@ contract Nucleart is
         }
 
         return price * 10**18;
+    }
+
+    function _uriHash(string calldata uri) internal pure returns (bytes32) {
+        return keccak256(bytes(uri));
+    }
+
+    function _setOrUpgradeVersion(string calldata uri) internal {
+        bytes32 _uriHashed = _uriHash(uri);
+        uint8 _level = getLevelFromUri(uri);
+        _level++;
+        _tokenUriHashToLevel[_uriHashed] = _level;
+    }
+
+    function getLevelFromUri(string calldata uri)
+        public
+        view
+        virtual
+        returns (uint8)
+    {
+        bytes32 _uriHashed = _uriHash(uri);
+        uint8 _level = _tokenUriHashToLevel[_uriHashed];
+
+        return _level;
     }
 }
