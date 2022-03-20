@@ -166,8 +166,21 @@ contract Nucleart is
         return super.supportsInterface(interfaceId);
     }
 
-    function getCurrentPrice() public pure returns (uint256) {
-        // todo: calculate a price based on the maximum tokens
-        return 0.001 * 10**18;
+    function getCurrentPrice() public view returns (uint256) {
+        uint256 price;
+
+        if (totalSupply() <= 80) {
+            price = 0;
+        } else if (totalSupply() <= 320) {
+            price = 1;
+        } else if (totalSupply() <= 1280) {
+            price = 10;
+        } else if (totalSupply() <= 5120) {
+            price = 100;
+        } else {
+            price = 1000;
+        }
+
+        return price * 10**18;
     }
 }
