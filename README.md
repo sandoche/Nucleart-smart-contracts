@@ -9,6 +9,7 @@
 - URI Storage
 - Roles
 - Enumerable
+- Royalties
 
 ## Pricing model
 
@@ -19,3 +20,7 @@
 | 321  | 1280  | 10 MATIC   |
 | 1281 | 5120  | 100 MATIC  |
 | 5121 | 13080 | 1000 MATIC |
+
+## Royalties fees
+
+10% of Royalties fees implemented with EIP2981
