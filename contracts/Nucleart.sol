@@ -1,23 +1,21 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721EnumerableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721URIStorageUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721BurnableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/cryptography/draft-EIP712Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/cryptography/ECDSAUpgradeable.sol";
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol";
+import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import "@openzeppelin/contracts/utils/cryptography/draft-EIP712.sol";
 
 contract Nucleart is
-    Initializable,
-    ERC721Upgradeable,
-    ERC721EnumerableUpgradeable,
-    ERC721URIStorageUpgradeable,
-    ERC721BurnableUpgradeable,
-    AccessControlUpgradeable,
-    EIP712Upgradeable
+    ERC721,
+    ERC721Enumerable,
+    ERC721URIStorage,
+    ERC721Burnable,
+    AccessControl,
+    EIP712
 {
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
     string private constant SIGNING_DOMAIN = "Nucleart-Voucher";
@@ -26,18 +24,11 @@ contract Nucleart is
     // Max supply based on the number of Nuclear Warhead available in January 2021, source: https://www.statista.com/statistics/264435/number-of-nuclear-warheads-worldwide/
     uint256 public constant MAX_SUPPLY = 13080;
 
-    /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor() initializer {}
-
-    function initialize() public initializer {
-        __ERC721_init("Nucleart", "NART");
-        __ERC721URIStorage_init();
-        __ERC721Burnable_init();
-        __AccessControl_init();
-        __EIP712_init(SIGNING_DOMAIN, SIGNATURE_VERSION);
-
-        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
-        _grantRole(MINTER_ROLE, msg.sender);
+    constructor(address payable minter)
+        ERC721("Nucleart", "NART")
+        EIP712(SIGNING_DOMAIN, SIGNATURE_VERSION)
+    {
+        _setupRole(MINTER_ROLE, minter);
     }
 
     /// @notice Represents an un-minted NFT, which has not yet been recorded into the blockchain. A signed voucher can be redeemed for a real NFT using the redeem function.
@@ -48,6 +39,10 @@ contract Nucleart is
         string uri;
         /// @notice the EIP-712 signature of all other fields in the NFTVoucher struct. For a voucher to be valid, it must be signed by an account with the MINTER_ROLE.
         bytes signature;
+    }
+
+    function _baseURI() internal pure override returns (string memory) {
+        return "ipfs://";
     }
 
     /// @notice Redeems an NFTVoucher for an actual NFT, creating it in the process.
@@ -94,12 +89,7 @@ contract Nucleart is
         returns (address)
     {
         bytes32 digest = _hash(voucher);
-        return ECDSAUpgradeable.recover(digest, voucher.signature);
-    }
-
-    function getCurrentPrice() public pure returns (uint256) {
-        // todo: calculate a price based on the maximum tokens
-        return 0.001 * 10**18;
+        return ECDSA.recover(digest, voucher.signature);
     }
 
     /// @notice Returns a hash of the given NFTVoucher, prepared using EIP712 typed data hashing rules.
@@ -123,15 +113,20 @@ contract Nucleart is
             );
     }
 
-    function _baseURI() internal pure override returns (string memory) {
-        return "ipfs://";
-    }
-
     function _lazyMint(
         address to,
         uint256 tokenId,
         string memory uri
     ) internal {
+        _safeMint(to, tokenId);
+        _setTokenURI(tokenId, uri);
+    }
+
+    function safeMint(
+        address to,
+        uint256 tokenId,
+        string memory uri
+    ) public onlyRole(MINTER_ROLE) {
         _safeMint(to, tokenId);
         _setTokenURI(tokenId, uri);
     }
@@ -142,13 +137,13 @@ contract Nucleart is
         address from,
         address to,
         uint256 tokenId
-    ) internal override(ERC721Upgradeable, ERC721EnumerableUpgradeable) {
+    ) internal override(ERC721, ERC721Enumerable) {
         super._beforeTokenTransfer(from, to, tokenId);
     }
 
     function _burn(uint256 tokenId)
         internal
-        override(ERC721Upgradeable, ERC721URIStorageUpgradeable)
+        override(ERC721, ERC721URIStorage)
     {
         super._burn(tokenId);
     }
@@ -156,7 +151,7 @@ contract Nucleart is
     function tokenURI(uint256 tokenId)
         public
         view
-        override(ERC721Upgradeable, ERC721URIStorageUpgradeable)
+        override(ERC721, ERC721URIStorage)
         returns (string memory)
     {
         return super.tokenURI(tokenId);
@@ -165,13 +160,14 @@ contract Nucleart is
     function supportsInterface(bytes4 interfaceId)
         public
         view
-        override(
-            ERC721Upgradeable,
-            ERC721EnumerableUpgradeable,
-            AccessControlUpgradeable
-        )
+        override(ERC721, ERC721Enumerable, AccessControl)
         returns (bool)
     {
         return super.supportsInterface(interfaceId);
+    }
+
+    function getCurrentPrice() public pure returns (uint256) {
+        // todo: calculate a price based on the maximum tokens
+        return 0.001 * 10**18;
     }
 }

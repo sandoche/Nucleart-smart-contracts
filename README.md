@@ -9,4 +9,3 @@
 - URI Storage
 - Roles
 - Enumerable
-- Upgradable (Transparent)
