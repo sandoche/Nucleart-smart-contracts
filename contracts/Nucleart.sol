@@ -8,6 +8,7 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/utils/cryptography/draft-EIP712.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Royalty.sol";
 
 contract Nucleart is
     ERC721,
@@ -15,7 +16,8 @@ contract Nucleart is
     ERC721URIStorage,
     ERC721Burnable,
     AccessControl,
-    EIP712
+    EIP712,
+    ERC721Royalty
 {
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
     string private constant SIGNING_DOMAIN = "Nucleart-Voucher";
@@ -28,7 +30,9 @@ contract Nucleart is
         ERC721("Nucleart", "NART")
         EIP712(SIGNING_DOMAIN, SIGNATURE_VERSION)
     {
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _setupRole(MINTER_ROLE, minter);
+        _setDefaultRoyalty(msg.sender, 1000);
     }
 
     /// @notice Represents an un-minted NFT, which has not yet been recorded into the blockchain. A signed voucher can be redeemed for a real NFT using the redeem function.
@@ -131,6 +135,13 @@ contract Nucleart is
         _setTokenURI(tokenId, uri);
     }
 
+    function changeRoyaltyReceiver(address newRoyaltyReceiver)
+        public
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        _setDefaultRoyalty(newRoyaltyReceiver, 1000);
+    }
+
     // The following functions are overrides required by Solidity.
 
     function _beforeTokenTransfer(
@@ -143,7 +154,7 @@ contract Nucleart is
 
     function _burn(uint256 tokenId)
         internal
-        override(ERC721, ERC721URIStorage)
+        override(ERC721, ERC721URIStorage, ERC721Royalty)
     {
         super._burn(tokenId);
     }
@@ -160,7 +171,7 @@ contract Nucleart is
     function supportsInterface(bytes4 interfaceId)
         public
         view
-        override(ERC721, ERC721Enumerable, AccessControl)
+        override(ERC721, ERC721Enumerable, AccessControl, ERC721Royalty)
         returns (bool)
     {
         return super.supportsInterface(interfaceId);
