@@ -228,4 +228,16 @@ contract Nucleart is
         uint8 _level = _tokenUriHashToLevel[_uriHashed];
         return _level;
     }
+
+  /// @notice Returns the chain id of the current blockchain.
+  /// @dev This is used to workaround an issue with ganache returning different values from the on-chain chainid() function and
+  ///  the eth_chainId RPC method. See https://github.com/protocol/nft-website/issues/121 for context.
+  function getChainID() external view returns (uint256) {
+    uint256 id;
+    assembly {
+        id := chainid()
+    }
+    return id;
+  }
+
 }
