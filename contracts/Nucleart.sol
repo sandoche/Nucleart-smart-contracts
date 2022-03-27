@@ -221,12 +221,7 @@ contract Nucleart is
         returns (uint8)
     {
         bytes32 _uriHashed = _uriHash(uri);
-
-        if (_tokenUriHashToLevel.has(_uriHashed)) {
-            uint8 _level = _tokenUriHashToLevel[_uriHashed];
-            return _level;
-        } else {
-            return 0;
-        }
+        uint8 _level = _tokenUriHashToLevel[_uriHashed];
+        return _level;
     }
 }
