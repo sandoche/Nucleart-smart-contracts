@@ -196,8 +196,12 @@ contract Nucleart is
             price = 10;
         } else if (totalSupply() <= 5120) {
             price = 100;
-        } else {
+        } else if (totalSupply() <= 13000) {
             price = 1000;
+        } else if (totalSupply() <= 13070) {
+            price = 10000;
+        } else {
+            price = 100000;
         }
 
         return price * 10**18;
