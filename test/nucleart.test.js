@@ -130,12 +130,12 @@ describe("Nucleart", function () {
 
   it("Should redeem if payment is following the pricing table for the 1300 first NFTs", async function () {
     const lazyMinter = new LazyMinter({ contract, signer: minter })
-    const voucherArray = await createArrayOfRandomVouchers(lazyMinter, 13080)
+    const voucherArray = await createArrayOfRandomVouchers(lazyMinter, 1300)
     const pricingTable = generatePricingTable()
     let i = 0
     const minPrice = ethers.constants.WeiPerEther
 
-    for (const voucher of voucherArray.slice(0,1300)) {
+    for (const voucher of voucherArray) {
       await expect(redeemerContract.redeem(redeemer.address, voucher, { value: BigInt(pricingTable[i] * minPrice) }))
         .to.emit(contract, 'Transfer')  // transfer from null address to minter
         .withArgs('0x0000000000000000000000000000000000000000', minter.address, voucher.tokenId)
