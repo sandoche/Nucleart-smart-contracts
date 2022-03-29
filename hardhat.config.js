@@ -15,7 +15,15 @@ module.exports = {
   },
   networks: {
     hardhat: {
-      chainId: 1337
+      chainId: 1337,
+      accounts: {
+        mnemonic: "test test test test test test test test test test test junk",
+        initialIndex: 0,
+        accountsBalance: "10000000000000000000000000000"
+      }
     },
+  },
+  mocha: {
+    timeout: 4000000
   }
 }
