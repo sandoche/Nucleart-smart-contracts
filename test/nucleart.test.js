@@ -21,7 +21,7 @@ async function deploy() {
   }
 }
 
-describe("Nucleart - Deploy", function () {
+describe("Nucleart - Signature", function () {
   let contract, redeemerContract, redeemer, minter
 
   beforeEach(async function () {
@@ -157,5 +157,41 @@ describe("Nucleart - Pricing", function () {
 
       i++
     }
+  })
+})
+
+describe("Nucleart - Max supply", function () {
+  let contract, redeemerContract, redeemer, minter
+
+  beforeEach(async function () {
+    const contractData = await deploy()
+
+    contract = contractData.contract
+    redeemerContract = contractData.redeemerContract
+    redeemer = contractData.redeemer
+    minter = contractData.minter
+  })
+
+
+  it("Should redeem 13080 NFT and fail for the 13081", async function () {
+    const lazyMinter = new LazyMinter({ contract, signer: minter })
+    const voucherArray = await createArrayOfRandomVouchers(lazyMinter, 13081)
+    const pricingTable = generatePricingTable()
+    let i = 0
+    const minPrice = ethers.constants.WeiPerEther
+
+    for (const voucher of voucherArray) {
+      await expect(redeemerContract.redeem(redeemer.address, voucher, { value: BigInt(pricingTable[i] * minPrice) }))
+        .to.emit(contract, 'Transfer')  // transfer from null address to minter
+        .withArgs('0x0000000000000000000000000000000000000000', minter.address, voucher.tokenId)
+        .and.to.emit(contract, 'Transfer') // transfer from minter to redeemer
+        .withArgs(minter.address, redeemer.address, voucher.tokenId)
+
+      console.log(i)
+      i++
+    }
+
+    await expect(redeemerContract.redeem(redeemer.address, voucherArray[13080], { value: BigInt(pricingTable[i - 1] * minPrice) }))
+    .to.be.revertedWith('All the nucleart warheads have been used')
   })
 })

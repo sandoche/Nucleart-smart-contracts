@@ -19,11 +19,11 @@ module.exports = {
       accounts: {
         mnemonic: "test test test test test test test test test test test junk",
         initialIndex: 0,
-        accountsBalance: "100000000000000000000000000000000000000000000000"
+        accountsBalance: "1000000000000000000000000000000000000000000000000000"
       }
     },
   },
   mocha: {
-    timeout: 400000000
+    timeout: 4000000000
   }
 }
