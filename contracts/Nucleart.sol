@@ -188,17 +188,17 @@ contract Nucleart is
     function getCurrentPrice() public view returns (uint256) {
         uint256 price;
 
-        if (totalSupply() <= 80) {
+        if (totalSupply() < 80) {
             price = 0;
-        } else if (totalSupply() <= 320) {
+        } else if (totalSupply() < 320) {
             price = 1;
-        } else if (totalSupply() <= 1280) {
+        } else if (totalSupply() < 1280) {
             price = 10;
-        } else if (totalSupply() <= 5120) {
+        } else if (totalSupply() < 5120) {
             price = 100;
-        } else if (totalSupply() <= 13000) {
+        } else if (totalSupply() < 13000) {
             price = 1000;
-        } else if (totalSupply() <= 13070) {
+        } else if (totalSupply() < 13070) {
             price = 10000;
         } else {
             price = 100000;

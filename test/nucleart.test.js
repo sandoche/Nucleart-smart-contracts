@@ -1,5 +1,6 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
+const { createArrayOfRandomVouchers } = require("../utils/test-helper")
 const { LazyMinter } = require('../utils/lazy-minter.js')
 
 async function deploy() {
@@ -96,4 +97,46 @@ describe("Nucleart", function () {
     await expect(redeemerContract.redeem(redeemer.address, voucher))
       .to.be.revertedWith('Signature invalid or unauthorized')
   });
+
+  it("Should redeem if payment is 0 for the first 80 NFTs", async function () {
+    const lazyMinter = new LazyMinter({ contract, signer: minter })
+    const voucherArray = await createArrayOfRandomVouchers(lazyMinter, 80)
+
+    for (const voucher of voucherArray) {
+      await expect(redeemerContract.redeem(redeemer.address, voucher, { value: 0 }))
+        .to.emit(contract, 'Transfer')  // transfer from null address to minter
+        .withArgs('0x0000000000000000000000000000000000000000', minter.address, voucher.tokenId)
+        .and.to.emit(contract, 'Transfer') // transfer from minter to redeemer
+        .withArgs(minter.address, redeemer.address, voucher.tokenId)
+    }
+  })
+
+
+  it("Should redeem if payment is 0 for the first 80 NFTs and fail for the 81 NFT", async function () {
+    const lazyMinter = new LazyMinter({ contract, signer: minter })
+    const voucherArray = await createArrayOfRandomVouchers(lazyMinter, 81)
+
+    for (const voucher of voucherArray.slice(0, 80)) {
+      await expect(redeemerContract.redeem(redeemer.address, voucher, { value: 0 }))
+        .to.emit(contract, 'Transfer')  // transfer from null address to minter
+        .withArgs('0x0000000000000000000000000000000000000000', minter.address, voucher.tokenId)
+        .and.to.emit(contract, 'Transfer') // transfer from minter to redeemer
+        .withArgs(minter.address, redeemer.address, voucher.tokenId)
+    }
+
+    await expect(redeemerContract.redeem(redeemer.address, voucherArray[80], { value: 0 }))
+      .to.be.revertedWith('Insufficient funds to redeem')
+  })
+
+
+  // it("Should fail to redeem if payment is < getCurrentPrice()", async function () {
+  //   const lazyMinter = new LazyMinter({ contract, signer: minter })
+  //   const minPrice = ethers.constants.WeiPerEther // charge 1 Eth
+  //   const voucher = await lazyMinter.createVoucher(1, "ipfs://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi", minPrice)
+
+  //   const payment = minPrice.sub(10000)
+  //   await expect(redeemerContract.redeem(redeemer.address, voucher, { value: payment }))
+  //     .to.be.revertedWith('Insufficient funds to redeem')
+  // })
+
 })
