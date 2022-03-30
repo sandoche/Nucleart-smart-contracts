@@ -23,11 +23,14 @@ contract Nucleart is
     string private constant SIGNING_DOMAIN = "Nucleart-Voucher";
     string private constant SIGNATURE_VERSION = "1";
 
+    // to delete
+    mapping(bytes32 => uint8) private _tokenUriHashToLevel;
+
     // Max supply based on the number of Nuclear Warhead available in January 2021, source: https://www.statista.com/statistics/264435/number-of-nuclear-warheads-worldwide/
     uint256 public constant MAX_SUPPLY = 13080;
     uint8 public constant MAX_LEVEL = 5;
 
-    mapping(bytes32 => uint8) private _tokenUriHashToLevel;
+    mapping(bytes32 => NFT) private _childToParent;
 
     constructor(address payable minter)
         ERC721("Nucleart", "NART")
@@ -38,15 +41,35 @@ contract Nucleart is
         _setDefaultRoyalty(msg.sender, 1000);
     }
 
+    struct NFT {
+        uint256 chainId;
+        address contractAddress;
+        uint256 tokenId;
+    }
+
     /// @notice Represents an un-minted NFT, which has not yet been recorded into the blockchain. A signed voucher can be redeemed for a real NFT using the redeem function.
     struct NFTVoucher {
         /// @notice The id of the token to be redeemed. Must be unique - if another token with this ID already exists, the redeem function will revert.
         uint256 tokenId;
         /// @notice The metadata URI to associate with this token.
         string uri;
+        /// @notice The chain id of the parent NFT.
+        uint256 parentNFTChainId;
+        /// @notice The contract address of the parent NFT.
+        address parentNFTcontractAddress;
+        /// @notice The token id of the parent NFT.
+        uint256 parentNFTtokenId;
+        /// @notice The chain id of the child NFT.
+        uint256 childNFTChainId;
+        /// @notice The contract address of the child NFT.
+        address childNFTcontractAddress;
+        /// @notice The token id of the child NFT.
+        uint256 childNFTtokenId;
         /// @notice the EIP-712 signature of all other fields in the NFTVoucher struct. For a voucher to be valid, it must be signed by an account with the MINTER_ROLE.
         bytes signature;
     }
+
+
 
     function _baseURI() internal pure override returns (string memory) {
         return "ipfs://";
@@ -117,9 +140,15 @@ contract Nucleart is
             _hashTypedDataV4(
                 keccak256(
                     abi.encode(
-                        keccak256("NFTVoucher(uint256 tokenId,string uri)"),
+                        keccak256("NFTVoucher(uint256 tokenId,string uri,uint256 parentNFTChainId,address parentNFTcontractAddress,uint256 parentNFTtokenId,uint256 childNFTChainId,address childNFTcontractAddress,uint256 childNFTtokenId)"),
                         voucher.tokenId,
-                        keccak256(bytes(voucher.uri))
+                        keccak256(bytes(voucher.uri)),
+                        voucher.parentNFTChainId,
+                        voucher.parentNFTcontractAddress,
+                        voucher.parentNFTtokenId,
+                        voucher.childNFTChainId,
+                        voucher.childNFTcontractAddress,
+                        voucher.childNFTtokenId
                     )
                 )
             );
@@ -227,6 +256,10 @@ contract Nucleart is
         bytes32 _uriHashed = _uriHash(uri);
         uint8 _level = _tokenUriHashToLevel[_uriHashed];
         return _level;
+    }
+
+    function _nftHash(NFT calldata nft) internal pure returns (bytes32) {
+        return keccak256(abi.encodePacked(nft.chainId, nft.contractAddress, nft.tokenId));
     }
 
   /// @notice Returns the chain id of the current blockchain.
