@@ -69,8 +69,6 @@ contract Nucleart is
         bytes signature;
     }
 
-
-
     function _baseURI() internal pure override returns (string memory) {
         return "ipfs://";
     }
@@ -102,14 +100,23 @@ contract Nucleart is
         );
 
         // get the parent NFT
-        NFT memory parentNFT = _constructNft(voucher.parentNFTChainId, voucher.parentNFTcontractAddress, voucher.parentNFTtokenId);
+        NFT memory parentNFT = _constructNft(
+            voucher.parentNFTChainId,
+            voucher.parentNFTcontractAddress,
+            voucher.parentNFTtokenId
+        );
 
         // get the children NFT
-        NFT memory childNFT = _constructNft(voucher.childNFTChainId, voucher.childNFTcontractAddress, voucher.childNFTtokenId);
+        NFT memory childNFT = _constructNft(
+            voucher.childNFTChainId,
+            voucher.childNFTcontractAddress,
+            voucher.childNFTtokenId
+        );
 
         // make sure that this parent NFT is not already minted
         require(
-            hasBeenBombed(parentNFT) == false, "This NFT has already been bombed"
+            hasBeenBombed(parentNFT) == false,
+            "This NFT has already been bombed"
         );
 
         // make sure the level is not above the limit then upgrade level
@@ -118,7 +125,7 @@ contract Nucleart is
             "This NFT reached its maximum level of radioactivity"
         );
         saveRelation(childNFT, parentNFT);
-        
+
         // first assign the token to the signer, to establish provenance on-chain
         _lazyMint(signer, voucher.tokenId, voucher.uri);
 
@@ -151,7 +158,9 @@ contract Nucleart is
             _hashTypedDataV4(
                 keccak256(
                     abi.encode(
-                        keccak256("NFTVoucher(uint256 tokenId,string uri,uint256 parentNFTChainId,address parentNFTcontractAddress,uint256 parentNFTtokenId,uint256 childNFTChainId,address childNFTcontractAddress,uint256 childNFTtokenId)"),
+                        keccak256(
+                            "NFTVoucher(uint256 tokenId,string uri,uint256 parentNFTChainId,address parentNFTcontractAddress,uint256 parentNFTtokenId,uint256 childNFTChainId,address childNFTcontractAddress,uint256 childNFTtokenId)"
+                        ),
                         voucher.tokenId,
                         keccak256(bytes(voucher.uri)),
                         voucher.parentNFTChainId,
@@ -190,6 +199,86 @@ contract Nucleart is
         _setDefaultRoyalty(newRoyaltyReceiver, 1000);
     }
 
+    function getCurrentPrice() public view returns (uint256) {
+        uint256 price;
+
+        if (totalSupply() < 80) {
+            price = 0;
+        } else if (totalSupply() < 320) {
+            price = 1;
+        } else if (totalSupply() < 1280) {
+            price = 10;
+        } else if (totalSupply() < 5120) {
+            price = 100;
+        } else if (totalSupply() < 13000) {
+            price = 1000;
+        } else if (totalSupply() < 13070) {
+            price = 10000;
+        } else {
+            price = 100000;
+        }
+
+        return price * 10**18;
+    }
+
+    function getLevel(NFT memory nft) public view virtual returns (uint8) {
+        uint8 level = 1;
+        NFT memory currentChild = nft;
+
+        while (_getParentNft(currentChild).chainId > 0) {
+            level++;
+            currentChild = _getParentNft(currentChild);
+        }
+
+        return level;
+    }
+
+    function saveRelation(NFT memory childNft, NFT memory parentNft) internal {
+        bytes32 _childNftHash = _nftHash(childNft);
+        _childNftHashToNftParent[_childNftHash] = parentNft;
+    }
+
+    function _constructNft(
+        uint256 chainId,
+        address contractAddress,
+        uint256 tokenId
+    ) internal pure returns (NFT memory) {
+        NFT memory _nft = NFT(chainId, contractAddress, tokenId);
+        return _nft;
+    }
+
+    function _nftHash(NFT memory nft) internal pure returns (bytes32) {
+        return
+            keccak256(
+                abi.encodePacked(nft.chainId, nft.contractAddress, nft.tokenId)
+            );
+    }
+
+    function _getParentNft(NFT memory childNft)
+        internal
+        view
+        returns (NFT memory)
+    {
+        bytes32 _childNftHash = _nftHash(childNft);
+        return _childNftHashToNftParent[_childNftHash];
+    }
+
+    function hasBeenBombed(NFT memory nft) internal view returns (bool) {
+        NFT memory _parent = _getParentNft(nft);
+        return _parent.chainId > 0;
+    }
+
+    /// @notice Returns the chain id of the current blockchain.
+    /// @dev This is used to workaround an issue with ganache returning different values from the on-chain chainid() function and
+    ///  the eth_chainId RPC method. See https://github.com/protocol/nft-website/issues/121 for context.
+    function getChainID() external view returns (uint256) {
+        uint256 id;
+        assembly {
+            id := chainid()
+        }
+        return id;
+    }
+
     // The following functions are overrides required by Solidity.
 
     function _beforeTokenTransfer(
@@ -224,83 +313,4 @@ contract Nucleart is
     {
         return super.supportsInterface(interfaceId);
     }
-
-    function getCurrentPrice() public view returns (uint256) {
-        uint256 price;
-
-        if (totalSupply() < 80) {
-            price = 0;
-        } else if (totalSupply() < 320) {
-            price = 1;
-        } else if (totalSupply() < 1280) {
-            price = 10;
-        } else if (totalSupply() < 5120) {
-            price = 100;
-        } else if (totalSupply() < 13000) {
-            price = 1000;
-        } else if (totalSupply() < 13070) {
-            price = 10000;
-        } else {
-            price = 100000;
-        }
-
-        return price * 10**18;
-    }
-
-    function getLevel(NFT memory nft)
-        public
-        view
-        virtual
-        returns (uint8)
-    {
-        // init counter to 1
-        uint8 level = 1;
-
-        // track current child
-        NFT memory currentChild = nft;
- 
-        // while we have a parent
-        while (_getParentNft(currentChild).chainId > 0) {
-            level++;
-            currentChild = _getParentNft(currentChild);
-        }
-
-        return level;
-    }
-
-    function saveRelation(NFT memory childNft, NFT memory parentNft) internal {
-        bytes32 _childNftHash = _nftHash(childNft);
-        _childNftHashToNftParent[_childNftHash] = parentNft;
-    }
-
-    function _constructNft(uint256 chainId, address contractAddress, uint256 tokenId) internal pure returns (NFT memory) {
-        NFT memory _nft = NFT(chainId, contractAddress, tokenId);
-        return _nft;
-    }
-
-    function _nftHash(NFT memory nft) internal pure returns (bytes32) {
-        return keccak256(abi.encodePacked(nft.chainId, nft.contractAddress, nft.tokenId));
-    }
-
-    function _getParentNft(NFT memory childNft) internal view returns (NFT memory) {
-        bytes32 _childNftHash = _nftHash(childNft);
-        return _childNftHashToNftParent[_childNftHash];
-    }
-
-    function hasBeenBombed(NFT memory nft) internal view returns (bool) {
-        NFT memory _parent = _getParentNft(nft);
-        return _parent.chainId > 0;
-    }
-
-  /// @notice Returns the chain id of the current blockchain.
-  /// @dev This is used to workaround an issue with ganache returning different values from the on-chain chainid() function and
-  ///  the eth_chainId RPC method. See https://github.com/protocol/nft-website/issues/121 for context.
-  function getChainID() external view returns (uint256) {
-    uint256 id;
-    assembly {
-        id := chainid()
-    }
-    return id;
-  }
-
 }
