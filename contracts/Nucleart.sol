@@ -24,7 +24,7 @@ contract Nucleart is
     string private constant SIGNATURE_VERSION = "1";
 
     // to delete
-    mapping(bytes32 => uint8) private _tokenUriHashToLevel;
+    // mapping(bytes32 => uint8) private _tokenUriHashToLevel;
 
     // Max supply based on the number of Nuclear Warhead available in January 2021, source: https://www.statista.com/statistics/264435/number-of-nuclear-warheads-worldwide/
     uint256 public constant MAX_SUPPLY = 13080;
@@ -101,13 +101,24 @@ contract Nucleart is
             "All the nucleart warheads have been used"
         );
 
+        // get the parent NFT
+        NFT memory parentNFT = _constructNft(voucher.parentNFTChainId, voucher.parentNFTcontractAddress, voucher.parentNFTtokenId);
+
+        // get the children NFT
+        NFT memory childNFT = _constructNft(voucher.childNFTChainId, voucher.childNFTcontractAddress, voucher.childNFTtokenId);
+
+        // make sure that this parent NFT is not already minted
+        require(
+            hasBeenBombed(parentNFT) == false, "This NFT has already been bombed"
+        );
+
         // make sure the level is not above the limit then upgrade level
         require(
-            getLevelFromUri(voucher.uri) < MAX_LEVEL,
+            getLevel(parentNFT) < MAX_LEVEL,
             "This NFT reached its maximum level of radioactivity"
         );
-        _setOrUpgradeVersion(voucher.uri);
-
+        saveRelation(childNFT, parentNFT);
+        
         // first assign the token to the signer, to establish provenance on-chain
         _lazyMint(signer, voucher.tokenId, voucher.uri);
 
@@ -236,42 +247,49 @@ contract Nucleart is
         return price * 10**18;
     }
 
-    function _uriHash(string calldata uri) internal pure returns (bytes32) {
-        return keccak256(bytes(uri));
-    }
-
-    function _setOrUpgradeVersion(string calldata uri) internal {
-        bytes32 _uriHashed = _uriHash(uri);
-        uint8 _level = getLevelFromUri(uri);
-        _level++;
-        _tokenUriHashToLevel[_uriHashed] = _level;
-    }
-
-    function getLevelFromUri(string calldata uri)
+    function getLevel(NFT memory nft)
         public
         view
         virtual
         returns (uint8)
     {
-        bytes32 _uriHashed = _uriHash(uri);
-        uint8 _level = _tokenUriHashToLevel[_uriHashed];
-        return _level;
+        // init counter to 1
+        uint8 level = 1;
+
+        // track current child
+        NFT memory currentChild = nft;
+ 
+        // while we have a parent
+        while (_getParentNft(currentChild).chainId > 0) {
+            level++;
+            currentChild = _getParentNft(currentChild);
+        }
+
+        return level;
     }
 
+    function saveRelation(NFT memory childNft, NFT memory parentNft) internal {
+        bytes32 _childNftHash = _nftHash(childNft);
+        _childNftHashToNftParent[_childNftHash] = parentNft;
+    }
 
-
-    function _createNftObject(uint256 chainId, address contractAddress, uint256 tokenId) internal pure returns (NFT memory) {
+    function _constructNft(uint256 chainId, address contractAddress, uint256 tokenId) internal pure returns (NFT memory) {
         NFT memory _nft = NFT(chainId, contractAddress, tokenId);
         return _nft;
     }
 
-    function _nftHash(NFT calldata nft) internal pure returns (bytes32) {
+    function _nftHash(NFT memory nft) internal pure returns (bytes32) {
         return keccak256(abi.encodePacked(nft.chainId, nft.contractAddress, nft.tokenId));
     }
 
-    function _getParentNft(NFT calldata nftChild) internal view returns (NFT memory) {
-        bytes32 _nftChildHash = _nftHash(nftChild);
-        return _childNftHashToNftParent[_nftChildHash];
+    function _getParentNft(NFT memory childNft) internal view returns (NFT memory) {
+        bytes32 _childNftHash = _nftHash(childNft);
+        return _childNftHashToNftParent[_childNftHash];
+    }
+
+    function hasBeenBombed(NFT memory nft) internal view returns (bool) {
+        NFT memory _parent = _getParentNft(nft);
+        return _parent.chainId > 0;
     }
 
   /// @notice Returns the chain id of the current blockchain.
