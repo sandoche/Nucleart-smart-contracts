@@ -2,6 +2,21 @@
 
 > ☢️ Nuke any NFT and receive a new radioactive NFT
 
+## Rules
+
+- The NFT will stay on your wallet, you should not transfer it!
+- You can only nuke an NFT that you own (the ownership will be checked using your signature by the oracle)
+- Nuking your NFT will result in a new radioactive NFT that will be transfered to you
+- You can nuke an NFT only once
+- You can nuke the radioactive NFT
+- You can only chain nuke 5 times
+
+```
+Original NFT => Radioactive NFT (Level 1) => Radioactive NFT (Level 2) => Radioactive NFT (Level 3) => Radioactive NFT (Level 4) => Radioactive NFT (Level 5)
+```
+
+- None of the NFTs will be destroyed (except if you as the owner decide to burn it)
+
 ## Features (from OpenZeppelin)
 
 - Mintable
