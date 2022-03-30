@@ -30,7 +30,7 @@ contract Nucleart is
     uint256 public constant MAX_SUPPLY = 13080;
     uint8 public constant MAX_LEVEL = 5;
 
-    mapping(bytes32 => NFT) private _childToParent;
+    mapping(bytes32 => NFT) private _childNftHashToNftParent;
 
     constructor(address payable minter)
         ERC721("Nucleart", "NART")
@@ -258,8 +258,20 @@ contract Nucleart is
         return _level;
     }
 
+
+
+    function _createNftObject(uint256 chainId, address contractAddress, uint256 tokenId) internal pure returns (NFT memory) {
+        NFT memory _nft = NFT(chainId, contractAddress, tokenId);
+        return _nft;
+    }
+
     function _nftHash(NFT calldata nft) internal pure returns (bytes32) {
         return keccak256(abi.encodePacked(nft.chainId, nft.contractAddress, nft.tokenId));
+    }
+
+    function _getParentNft(NFT calldata nftChild) internal view returns (NFT memory) {
+        bytes32 _nftChildHash = _nftHash(nftChild);
+        return _childNftHashToNftParent[_nftChildHash];
     }
 
   /// @notice Returns the chain id of the current blockchain.
