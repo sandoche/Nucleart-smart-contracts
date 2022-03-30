@@ -11,23 +11,23 @@ const createArrayOfRandomVouchers = async (lazyMinter, numberOfVouchers) => {
 const generatePricingTable = () => {
   const pricingTable = []
 
-  for (let i = 0; i < 13080; i++) {
+  for (let i = 0; i < 13081; i++) {
     let price
 
     if (i < 80) {
       price = 0;
     } else if (i < 320) {
-        price = 1;
+      price = 1;
     } else if (i < 1280) {
-        price = 10;
+      price = 10;
     } else if (i < 5120) {
-        price = 100;
+      price = 100;
     } else if (i < 13000) {
-        price = 1000;
+      price = 1000;
     } else if (i < 13070) {
-        price = 10000;
+      price = 10000;
     } else {
-        price = 100000;
+      price = 100001;
     }
 
     pricingTable.push(price)

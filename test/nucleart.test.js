@@ -180,18 +180,17 @@ describe("Nucleart - Max supply", function () {
     let i = 0
     const minPrice = ethers.constants.WeiPerEther
 
-    for (const voucher of voucherArray) {
+    for (const voucher of voucherArray.slice(0, 13080)) {
       await expect(redeemerContract.redeem(redeemer.address, voucher, { value: BigInt(pricingTable[i] * minPrice) }))
         .to.emit(contract, 'Transfer')  // transfer from null address to minter
         .withArgs('0x0000000000000000000000000000000000000000', minter.address, voucher.tokenId)
         .and.to.emit(contract, 'Transfer') // transfer from minter to redeemer
         .withArgs(minter.address, redeemer.address, voucher.tokenId)
 
-      console.log(i)
       i++
     }
 
-    await expect(redeemerContract.redeem(redeemer.address, voucherArray[13080], { value: BigInt(pricingTable[i - 1] * minPrice) }))
-    .to.be.revertedWith('All the nucleart warheads have been used')
+    await expect(redeemerContract.redeem(redeemer.address, voucherArray[i], { value: BigInt(pricingTable[i] * minPrice) }))
+      .to.be.revertedWith('All the nucleart warheads have been used')
   })
 })
