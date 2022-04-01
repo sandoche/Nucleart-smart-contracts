@@ -4,9 +4,9 @@
 
 ## Rules
 
-- The NFT will stay on your wallet, you should not transfer it!
+- Your original NFT will stay on your wallet, Nucleart will never ask you to transfer it
 - You can only nuke an NFT that you own (the ownership will be checked using your signature by the oracle)
-- Nuking your NFT will result in a new radioactive NFT that will be transfered to you
+- Nuking your NFT will result in a new mint of radioactive NFT that will be transfered to you
 - You can nuke an NFT only once
 - You can nuke the radioactive NFT
 - You can only chain nuke 5 times
