@@ -11,6 +11,8 @@ import "@openzeppelin/contracts/utils/cryptography/draft-EIP712.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Royalty.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 
+import "hardhat/console.sol";
+
 contract Nucleart is
     ERC721,
     ERC721Enumerable,
@@ -33,6 +35,7 @@ contract Nucleart is
     uint256 public constant MAX_SUPPLY = 13080;
 
     mapping(bytes32 => NFT) private _childNftHashToNftParent;
+    mapping(bytes32 => bool) private _nftHasBeenNuked;
 
     constructor(address payable minter)
         ERC721("Nucleart", "NART")
@@ -105,7 +108,7 @@ contract Nucleart is
         // make sure that this parent NFT is not already minted
         require(
             hasBeenBombed(parentNFT) == false,
-            "This NFT has already been bombed"
+            "This NFT has already been nuked"
         );
 
         // make sure the level is not above the limit then upgrade level
@@ -114,10 +117,8 @@ contract Nucleart is
             "This NFT reached its maximum level of radioactivity"
         );
 
-        // mint the token
+        // mint and send the NFT
         uint256 _tokenId = _lazyMint(signer, voucher.uri);
-
-        // transfer the token to the redeemer
         _transfer(signer, redeemer, _tokenId);
 
         // get the children NFT
@@ -127,8 +128,9 @@ contract Nucleart is
             _tokenId
         );
 
-        // save the child parent relationship
-        saveRelation(childNFT, parentNFT);
+        // Save relation and mark NFT as nuked
+        _saveRelation(childNFT, parentNFT);
+        _markNFTAsNuked(parentNFT);
 
         return _tokenId;
     }
@@ -222,9 +224,13 @@ contract Nucleart is
         return level;
     }
 
-    function saveRelation(NFT memory childNft, NFT memory parentNft) internal {
+    function _saveRelation(NFT memory childNft, NFT memory parentNft) internal {
         bytes32 _childNftHash = _nftHash(childNft);
         _childNftHashToNftParent[_childNftHash] = parentNft;
+    }
+
+    function _markNFTAsNuked(NFT memory nft) internal {
+        _nftHasBeenNuked[_nftHash(nft)] = true;
     }
 
     function _constructNft(
@@ -253,8 +259,7 @@ contract Nucleart is
     }
 
     function hasBeenBombed(NFT memory nft) internal view returns (bool) {
-        NFT memory _parent = _getParentNft(nft);
-        return _parent.chainId > 0;
+        return _nftHasBeenNuked[_nftHash(nft)];
     }
 
     /// @notice Returns the chain id of the current blockchain.

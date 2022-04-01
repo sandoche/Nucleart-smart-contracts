@@ -48,31 +48,16 @@ describe("Nucleart - Signature", function () {
       tokenId: 1,
       uri: "ipfs://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi",
       parentNFTChainId: 1,
-      parentNFTcontractAddress: "0x0000000000000000000000000000000000000000",
+      parentNFTcontractAddress: "0x0000000000000000000000000000000000000999",
       parentNFTtokenId: 1,
     })
 
     await expect(redeemerContract.redeem(redeemer.address, voucher))
       .to.emit(contract, 'Transfer')  // transfer from null address to minter
-      .withArgs('0x0000000000000000000000000000000000000000', minter.address, 0)
+      .withArgs('0x0000000000000000000000000000000000000999', minter.address, 0)
       .and.to.emit(contract, 'Transfer') // transfer from minter to redeemer
       .withArgs(minter.address, redeemer.address, 0);
   });
-
-
-  // it("Should fail to redeem an NFT that's already been claimed", async function () {
-  //   const lazyMinter = new LazyMinter({ contract, signer: minter })
-  //   const voucher = await lazyMinter.createVoucher(1, "ipfs://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi")
-
-  //   await expect(redeemerContract.redeem(redeemer.address, voucher))
-  //     .to.emit(contract, 'Transfer')  // transfer from null address to minter
-  //     .withArgs('0x0000000000000000000000000000000000000000', minter.address, voucher.tokenId)
-  //     .and.to.emit(contract, 'Transfer') // transfer from minter to redeemer
-  //     .withArgs(minter.address, redeemer.address, voucher.tokenId);
-
-  //   await expect(redeemerContract.redeem(redeemer.address, voucher))
-  //     .to.be.revertedWith('ERC721: token already minted')
-  // });
 
   // it("Should fail to redeem an NFT voucher that's signed by an unauthorized account", async function () {
   //   const signers = await ethers.getSigners()
@@ -105,6 +90,40 @@ describe("Nucleart - Signature", function () {
   // });
 })
 
+describe("Nucleart - Rules", function () {
+  let contract, redeemerContract, redeemer, minter
+
+  beforeEach(async function () {
+    const contractData = await deploy()
+
+    contract = contractData.contract
+    redeemerContract = contractData.redeemerContract
+    redeemer = contractData.redeemer
+    minter = contractData.minter
+  })
+
+  it("Should fail to nuke an NFT that's already been nuked", async function () {
+    const lazyMinter = new LazyMinter({ contract, signer: minter })
+    const voucher = await lazyMinter.createVoucher({
+      tokenId: 1,
+      uri: "ipfs://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi",
+      parentNFTChainId: 1,
+      parentNFTcontractAddress: "0x0000000000000000000000000000000000000999",
+      parentNFTtokenId: 1,
+    })
+
+    await expect(redeemerContract.redeem(redeemer.address, voucher))
+      .to.emit(contract, 'Transfer')  // transfer from null address to minter
+      .withArgs('0x0000000000000000000000000000000000000999', minter.address, 0)
+      .and.to.emit(contract, 'Transfer') // transfer from minter to redeemer
+      .withArgs(minter.address, redeemer.address, 0);
+
+    await expect(redeemerContract.redeem(redeemer.address, voucher))
+      .to.be.revertedWith('This NFT has already been nuked')
+  });
+
+})
+
 // describe("Nucleart - Pricing", function () {
 //   let contract, redeemerContract, redeemer, minter
 
@@ -124,7 +143,7 @@ describe("Nucleart - Signature", function () {
 //     for (const voucher of voucherArray) {
 //       await expect(redeemerContract.redeem(redeemer.address, voucher, { value: 0 }))
 //         .to.emit(contract, 'Transfer')  // transfer from null address to minter
-//         .withArgs('0x0000000000000000000000000000000000000000', minter.address, voucher.tokenId)
+//         .withArgs('0x0000000000000000000000000000000000000999', minter.address, voucher.tokenId)
 //         .and.to.emit(contract, 'Transfer') // transfer from minter to redeemer
 //         .withArgs(minter.address, redeemer.address, voucher.tokenId)
 //     }
@@ -138,7 +157,7 @@ describe("Nucleart - Signature", function () {
 //     for (const voucher of voucherArray.slice(0, 80)) {
 //       await expect(redeemerContract.redeem(redeemer.address, voucher, { value: 0 }))
 //         .to.emit(contract, 'Transfer')  // transfer from null address to minter
-//         .withArgs('0x0000000000000000000000000000000000000000', minter.address, voucher.tokenId)
+//         .withArgs('0x0000000000000000000000000000000000000999', minter.address, voucher.tokenId)
 //         .and.to.emit(contract, 'Transfer') // transfer from minter to redeemer
 //         .withArgs(minter.address, redeemer.address, voucher.tokenId)
 //     }
@@ -157,7 +176,7 @@ describe("Nucleart - Signature", function () {
 //     for (const voucher of voucherArray) {
 //       await expect(redeemerContract.redeem(redeemer.address, voucher, { value: BigInt(pricingTable[i] * minPrice) }))
 //         .to.emit(contract, 'Transfer')  // transfer from null address to minter
-//         .withArgs('0x0000000000000000000000000000000000000000', minter.address, voucher.tokenId)
+//         .withArgs('0x0000000000000000000000000000000000000999', minter.address, voucher.tokenId)
 //         .and.to.emit(contract, 'Transfer') // transfer from minter to redeemer
 //         .withArgs(minter.address, redeemer.address, voucher.tokenId)
 
@@ -189,7 +208,7 @@ describe("Nucleart - Signature", function () {
 //     for (const voucher of voucherArray.slice(0, 13080)) {
 //       await expect(redeemerContract.redeem(redeemer.address, voucher, { value: BigInt(pricingTable[i] * minPrice) }))
 //         .to.emit(contract, 'Transfer')  // transfer from null address to minter
-//         .withArgs('0x0000000000000000000000000000000000000000', minter.address, voucher.tokenId)
+//         .withArgs('0x0000000000000000000000000000000000000999', minter.address, voucher.tokenId)
 //         .and.to.emit(contract, 'Transfer') // transfer from minter to redeemer
 //         .withArgs(minter.address, redeemer.address, voucher.tokenId)
 
