@@ -89,16 +89,21 @@ describe("Nucleart - Signature", function () {
       .to.be.revertedWith('Signature invalid or unauthorized')
   });
 
-  // it("Should fail to redeem an NFT voucher with an invalid signature", async function () {
-  //   const lazyMinter = new LazyMinter({ contract, signer: minter })
-  //   const voucher = await lazyMinter.createVoucher(1, "ipfs://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi")
+  it("Should fail to redeem an NFT voucher with an invalid signature", async function () {
+    const lazyMinter = new LazyMinter({ contract, signer: minter })
+    const voucher = await lazyMinter.createVoucher({
+      uri: "ipfs://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi",
+      parentNFTChainId: 1,
+      parentNFTcontractAddress: "0x0000000000000000000000000000000000000999",
+      parentNFTtokenId: 1,
+    })
 
-  //   const dummyData = ethers.utils.randomBytes(128)
-  //   voucher.signature = await minter.signMessage(dummyData)
+    const dummyData = ethers.utils.randomBytes(128)
+    voucher.signature = await minter.signMessage(dummyData)
 
-  //   await expect(redeemerContract.redeem(redeemer.address, voucher))
-  //     .to.be.revertedWith('Signature invalid or unauthorized')
-  // });
+    await expect(redeemerContract.redeem(redeemer.address, voucher))
+      .to.be.revertedWith('Signature invalid or unauthorized')
+  });
 })
 
 describe("Nucleart - Rules", function () {
