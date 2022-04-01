@@ -121,7 +121,7 @@ contract Nucleart is
 
         // get the children NFT
         NFT memory childNFT = _constructNft(
-            _getChainID(),
+            getChainID(),
             address(this),
             _tokenId
         );
@@ -215,9 +215,9 @@ contract Nucleart is
 
             NFT memory currentChild = nft;
 
-            while (_getParentNft(currentChild).chainId > 0) {
+            while (getParentNft(currentChild).chainId > 0) {
                 level++;
-                currentChild = _getParentNft(currentChild);
+                currentChild = getParentNft(currentChild);
             }
 
             return level;
@@ -229,22 +229,6 @@ contract Nucleart is
     function _saveRelation(NFT memory childNft, NFT memory parentNft) internal {
         bytes32 _childNftHash = _nftHash(childNft);
         _childNftHashToNftParent[_childNftHash] = parentNft;
-
-        // console.log("_________saveRelation________");
-
-        // console.log("Child data");
-        // console.logBytes32(_childNftHash);
-        // console.log(childNft.chainId);
-        // console.log(childNft.contractAddress);
-        // console.log(childNft.tokenId);
-
-        // console.log("Parent data");
-        // console.logBytes32(_nftHash(parentNft));
-        // console.log(parentNft.chainId);
-        // console.log(parentNft.contractAddress);
-        // console.log(parentNft.tokenId);
-
-        // console.log("============================");
     }
 
     function _markNFTAsNuked(NFT memory nft) internal {
@@ -267,29 +251,12 @@ contract Nucleart is
             );
     }
 
-    function _getParentNft(NFT memory childNft)
-        internal
+    function getParentNft(NFT memory childNft)
+        public
         view
         returns (NFT memory)
     {
         bytes32 _childNftHash = _nftHash(childNft);
-
-        // console.log("________getParentNft________");
-
-        // console.log("Child data");
-        // console.logBytes32(_childNftHash);
-        // console.log(childNft.chainId);
-        // console.log(childNft.contractAddress);
-        // console.log(childNft.tokenId);
-
-        // console.log("Parent data");
-        // console.logBytes32(_nftHash(_childNftHashToNftParent[_childNftHash]));
-        // console.log(_childNftHashToNftParent[_childNftHash].chainId);
-        // console.log(_childNftHashToNftParent[_childNftHash].contractAddress);
-        // console.log(_childNftHashToNftParent[_childNftHash].tokenId);
-
-        // console.log("============================");
-
         return _childNftHashToNftParent[_childNftHash];
     }
 
@@ -300,11 +267,7 @@ contract Nucleart is
     /// @notice Returns the chain id of the current blockchain.
     /// @dev This is used to workaround an issue with ganache returning different values from the on-chain chainid() function and
     ///  the eth_chainId RPC method. See https://github.com/protocol/nft-website/issues/121 for context.
-    function getChainID() external view returns (uint256) {
-        return _getChainID();
-    }
-
-    function _getChainID() internal view returns (uint256) {
+    function getChainID() public view returns (uint256) {
         uint256 id;
         assembly {
             id := chainid()
