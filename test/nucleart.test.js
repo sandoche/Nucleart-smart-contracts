@@ -345,7 +345,50 @@ describe("Nucleart - Rules", function () {
 
   });
 
-})
+
+
+  it("Should not be possible to nuke twice a nuked NFT", async function () {
+    const lazyMinter = new LazyMinter({ contract, signer: minter })
+    const voucherOfInitialNuke = await lazyMinter.createVoucher({
+      uri: "ipfs://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi",
+      parentNFTChainId: 1,
+      parentNFTcontractAddress: "0x0000000000000000000000000000000000000999",
+      parentNFTtokenId: 1,
+    })
+
+    const tx = await redeemerContract.redeem(redeemer.address, voucherOfInitialNuke, { value: 0 })
+    const rc = await tx.wait();
+    const event = rc.events.find(event => event.event === 'Transfer');
+
+    const chainId = await contract.getChainID()
+
+    const voucherOfFirstNuke = await lazyMinter.createVoucher({
+      uri: "ipfs://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi",
+      parentNFTChainId: chainId,
+      parentNFTcontractAddress: event.address,
+      parentNFTtokenId: event.args.tokenId.toNumber(),
+    })
+
+    const txFirst = await redeemerContract.redeem(redeemer.address, voucherOfFirstNuke, { value: 0 })
+    const rcFirst = await txFirst.wait();
+    const eventFirst = rcFirst.events.find(event => event.event === 'Transfer');
+
+    const voucherOfSecondNuke = await lazyMinter.createVoucher({
+      uri: "ipfs://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi",
+      parentNFTChainId: chainId,
+      parentNFTcontractAddress: eventFirst.address,
+      parentNFTtokenId: eventFirst.args.tokenId.toNumber()
+    });
+
+    const txSecond = await redeemerContract.redeem(redeemer.address, voucherOfSecondNuke, { value: 0 })
+    await txSecond.wait();
+    const rcSecond = await txSecond.wait();
+
+    await expect(redeemerContract.redeem(redeemer.address, voucherOfFirstNuke, { value: 0 }))
+      .to.be.revertedWith('This NFT has already been nuked')
+  });
+});
+
 
 // describe("Nucleart - Pricing", function () {
 //   let contract, redeemerContract, redeemer, minter
