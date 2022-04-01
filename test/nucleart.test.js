@@ -153,6 +153,62 @@ describe("Nucleart - Rules", function () {
     }
   });
 
+
+  it("Should increase the level of the NFT when chained nuked", async function () {
+    const lazyMinter = new LazyMinter({ contract, signer: minter })
+    const voucherOfInitialNuke = await lazyMinter.createVoucher({
+      uri: "ipfs://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi",
+      parentNFTChainId: 1,
+      parentNFTcontractAddress: "0x0000000000000000000000000000000000000999",
+      parentNFTtokenId: 1,
+    })
+
+    const tx = await redeemerContract.redeem(redeemer.address, voucherOfInitialNuke, { value: 0 })
+    const rc = await tx.wait();
+    const event = rc.events.find(event => event.event === 'Transfer');
+
+    const chainId = await contract.getChainID()
+
+    const voucherOfSecondNuke = await lazyMinter.createVoucher({
+      uri: "ipfs://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi",
+      parentNFTChainId: chainId,
+      parentNFTcontractAddress: event.address,
+      parentNFTtokenId: event.args.tokenId.toNumber()
+    });
+
+    const txSecond = await redeemerContract.redeem(redeemer.address, voucherOfSecondNuke, { value: 0 })
+    await txSecond.wait();
+
+    const nftFirst = {
+      chainId: voucherOfInitialNuke.parentNFTChainId,
+      contractAddress: voucherOfInitialNuke.parentNFTcontractAddress,
+      tokenId: voucherOfInitialNuke.parentNFTtokenId
+    }
+
+    const nftSecond = {
+      chainId: voucherOfSecondNuke.parentNFTChainId,
+      contractAddress: voucherOfSecondNuke.parentNFTcontractAddress,
+      tokenId: voucherOfSecondNuke.parentNFTtokenId
+    }
+
+    const levelFirst = await contract.getLevel(nftFirst)
+    const levelSecond = await contract.getLevel(nftSecond)
+
+    expect(levelFirst).to.equal(1)
+    expect(levelSecond).to.equal(2)
+  });
+
+  it("Should return a level of 0 to a NFT that has not been nuked yet", async function () {
+    const randomNft = {
+      chainId: 123,
+      contractAddress: "0x0000000000000000000000000000000000000123",
+      tokenId: 123135
+    }
+
+    const randomNftLevel = await contract.getLevel(randomNft)
+
+    expect(randomNftLevel).to.equal(0)
+  });
 })
 
 // describe("Nucleart - Pricing", function () {

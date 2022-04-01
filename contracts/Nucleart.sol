@@ -105,7 +105,7 @@ contract Nucleart is
 
         // make sure that this parent NFT is not already minted
         require(
-            hasBeenBombed(parentNFT) == false,
+            hasBeenNuked(parentNFT) == false,
             "This NFT has already been nuked"
         );
 
@@ -210,20 +210,41 @@ contract Nucleart is
     }
 
     function getLevel(NFT memory nft) public view virtual returns (uint8) {
-        uint8 level = 1;
-        NFT memory currentChild = nft;
+        if (hasBeenNuked(nft)) {
+            uint8 level = 1;
 
-        while (_getParentNft(currentChild).chainId > 0) {
-            level++;
-            currentChild = _getParentNft(currentChild);
+            NFT memory currentChild = nft;
+
+            while (_getParentNft(currentChild).chainId > 0) {
+                level++;
+                currentChild = _getParentNft(currentChild);
+            }
+
+            return level;
+        } else {
+            return 0;
         }
-
-        return level;
     }
 
     function _saveRelation(NFT memory childNft, NFT memory parentNft) internal {
         bytes32 _childNftHash = _nftHash(childNft);
         _childNftHashToNftParent[_childNftHash] = parentNft;
+
+        // console.log("_________saveRelation________");
+
+        // console.log("Child data");
+        // console.logBytes32(_childNftHash);
+        // console.log(childNft.chainId);
+        // console.log(childNft.contractAddress);
+        // console.log(childNft.tokenId);
+
+        // console.log("Parent data");
+        // console.logBytes32(_nftHash(parentNft));
+        // console.log(parentNft.chainId);
+        // console.log(parentNft.contractAddress);
+        // console.log(parentNft.tokenId);
+
+        // console.log("============================");
     }
 
     function _markNFTAsNuked(NFT memory nft) internal {
@@ -252,10 +273,27 @@ contract Nucleart is
         returns (NFT memory)
     {
         bytes32 _childNftHash = _nftHash(childNft);
+
+        // console.log("________getParentNft________");
+
+        // console.log("Child data");
+        // console.logBytes32(_childNftHash);
+        // console.log(childNft.chainId);
+        // console.log(childNft.contractAddress);
+        // console.log(childNft.tokenId);
+
+        // console.log("Parent data");
+        // console.logBytes32(_nftHash(_childNftHashToNftParent[_childNftHash]));
+        // console.log(_childNftHashToNftParent[_childNftHash].chainId);
+        // console.log(_childNftHashToNftParent[_childNftHash].contractAddress);
+        // console.log(_childNftHashToNftParent[_childNftHash].tokenId);
+
+        // console.log("============================");
+
         return _childNftHashToNftParent[_childNftHash];
     }
 
-    function hasBeenBombed(NFT memory nft) internal view returns (bool) {
+    function hasBeenNuked(NFT memory nft) internal view returns (bool) {
         return _nftHasBeenNuked[_nftHash(nft)];
     }
 
