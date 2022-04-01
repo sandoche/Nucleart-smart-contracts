@@ -61,12 +61,6 @@ contract Nucleart is
         address parentNFTcontractAddress;
         /// @notice The token id of the parent NFT.
         uint256 parentNFTtokenId;
-        /// @notice The chain id of the child NFT.
-        uint256 childNFTChainId;
-        /// @notice The contract address of the child NFT.
-        address childNFTcontractAddress;
-        /// @notice The token id of the child NFT.
-        uint256 childNFTtokenId;
         /// @notice the EIP-712 signature of all other fields in the NFTVoucher struct. For a voucher to be valid, it must be signed by an account with the MINTER_ROLE.
         bytes signature;
     }
@@ -163,16 +157,13 @@ contract Nucleart is
                 keccak256(
                     abi.encode(
                         keccak256(
-                            "NFTVoucher(uint256 tokenId,string uri,uint256 parentNFTChainId,address parentNFTcontractAddress,uint256 parentNFTtokenId,uint256 childNFTChainId,address childNFTcontractAddress,uint256 childNFTtokenId)"
+                            "NFTVoucher(uint256 tokenId,string uri,uint256 parentNFTChainId,address parentNFTcontractAddress,uint256 parentNFTtokenId)"
                         ),
                         voucher.tokenId,
                         keccak256(bytes(voucher.uri)),
                         voucher.parentNFTChainId,
                         voucher.parentNFTcontractAddress,
-                        voucher.parentNFTtokenId,
-                        voucher.childNFTChainId,
-                        voucher.childNFTcontractAddress,
-                        voucher.childNFTtokenId
+                        voucher.parentNFTtokenId
                     )
                 )
             );

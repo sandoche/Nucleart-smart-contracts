@@ -50,9 +50,6 @@ describe("Nucleart - Signature", function () {
       parentNFTChainId: 1,
       parentNFTcontractAddress: "0x0000000000000000000000000000000000000000",
       parentNFTtokenId: 1,
-      childNFTChainId: 1,
-      childNFTcontractAddress: "0x0000000000000000000000000000000000000000",
-      childNFTtokenId: 1,
     })
 
     await expect(redeemerContract.redeem(redeemer.address, voucher))
