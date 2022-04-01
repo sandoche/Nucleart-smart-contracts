@@ -155,6 +155,61 @@ describe("Nucleart - Rules", function () {
 
 
   it("Should increase the level of the NFT when chained nuked", async function () {
+    const chainId = await contract.getChainID()
+    const lazyMinter = new LazyMinter({ contract, signer: minter })
+    const voucherOfInitialNuke = await lazyMinter.createVoucher({
+      uri: "ipfs://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi",
+      parentNFTChainId: 1,
+      parentNFTcontractAddress: "0x0000000000000000000000000000000000000999",
+      parentNFTtokenId: 1,
+    })
+
+    const tx = await redeemerContract.redeem(redeemer.address, voucherOfInitialNuke, { value: 0 })
+    const rc = await tx.wait();
+    const event = rc.events.find(event => event.event === 'Transfer');
+
+    const voucherOfFirstNuke = await lazyMinter.createVoucher({
+      uri: "ipfs://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi",
+      parentNFTChainId: chainId,
+      parentNFTcontractAddress: event.address,
+      parentNFTtokenId: event.args.tokenId.toNumber()
+    });
+
+    const txSecond = await redeemerContract.redeem(redeemer.address, voucherOfFirstNuke, { value: 0 })
+    await txSecond.wait();
+
+    const originalNFT = {
+      chainId: voucherOfInitialNuke.parentNFTChainId,
+      contractAddress: voucherOfInitialNuke.parentNFTcontractAddress,
+      tokenId: voucherOfInitialNuke.parentNFTtokenId
+    }
+
+    const radioactiveNFT = {
+      chainId: voucherOfFirstNuke.parentNFTChainId,
+      contractAddress: voucherOfFirstNuke.parentNFTcontractAddress,
+      tokenId: voucherOfFirstNuke.parentNFTtokenId
+    }
+
+    const levelOfInitialNFT = await contract.getLevel(originalNFT)
+    const levelOfFirstRadioactiveNFT = await contract.getLevel(radioactiveNFT)
+
+    expect(levelOfInitialNFT).to.equal(0)
+    expect(levelOfFirstRadioactiveNFT).to.equal(1)
+  });
+
+  it("Should return a level of 0 to a NFT that has not been nuked yet", async function () {
+    const randomNft = {
+      chainId: 123,
+      contractAddress: "0x0000000000000000000000000000000000000123",
+      tokenId: 123135
+    }
+
+    const randomNftLevel = await contract.getLevel(randomNft)
+
+    expect(randomNftLevel).to.equal(0)
+  });
+
+  it("Should increase the level of the NFT when chained nuked until 5 and would fail over 5", async function () {
     const lazyMinter = new LazyMinter({ contract, signer: minter })
     const voucherOfInitialNuke = await lazyMinter.createVoucher({
       uri: "ipfs://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi",
@@ -169,20 +224,75 @@ describe("Nucleart - Rules", function () {
 
     const chainId = await contract.getChainID()
 
-    const voucherOfSecondNuke = await lazyMinter.createVoucher({
+    const voucherOfFirstNuke = await lazyMinter.createVoucher({
       uri: "ipfs://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi",
       parentNFTChainId: chainId,
       parentNFTcontractAddress: event.address,
-      parentNFTtokenId: event.args.tokenId.toNumber()
+      parentNFTtokenId: event.args.tokenId.toNumber(),
+    })
+
+    const txFirst = await redeemerContract.redeem(redeemer.address, voucherOfFirstNuke, { value: 0 })
+    const rcFirst = await txFirst.wait();
+    const eventFirst = rcFirst.events.find(event => event.event === 'Transfer');
+
+    const voucherOfSecondNuke = await lazyMinter.createVoucher({
+      uri: "ipfs://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi",
+      parentNFTChainId: chainId,
+      parentNFTcontractAddress: eventFirst.address,
+      parentNFTtokenId: eventFirst.args.tokenId.toNumber()
     });
 
     const txSecond = await redeemerContract.redeem(redeemer.address, voucherOfSecondNuke, { value: 0 })
     await txSecond.wait();
+    const rcSecond = await txSecond.wait();
+    const eventSecond = rcSecond.events.find(event => event.event === 'Transfer');
 
-    const nftFirst = {
+    const voucherOfThirdNuke = await lazyMinter.createVoucher({
+      uri: "ipfs://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi",
+      parentNFTChainId: chainId,
+      parentNFTcontractAddress: eventSecond.address,
+      parentNFTtokenId: eventSecond.args.tokenId.toNumber()
+    });
+
+    const txThird = await redeemerContract.redeem(redeemer.address, voucherOfThirdNuke, { value: 0 })
+    await txThird.wait();
+    const rcThird = await txThird.wait();
+    const eventThird = rcThird.events.find(event => event.event === 'Transfer');
+
+    const voucherOfFourthNuke = await lazyMinter.createVoucher({
+      uri: "ipfs://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi",
+      parentNFTChainId: chainId,
+      parentNFTcontractAddress: eventThird.address,
+      parentNFTtokenId: eventThird.args.tokenId.toNumber()
+    });
+
+    const txFourth = await redeemerContract.redeem(redeemer.address, voucherOfFourthNuke, { value: 0 })
+    await txFourth.wait();
+    const rcFourth = await txFourth.wait();
+    const eventFourth = rcFourth.events.find(event => event.event === 'Transfer');
+
+    const voucherOfFifthNuke = await lazyMinter.createVoucher({
+      uri: "ipfs://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi",
+      parentNFTChainId: chainId,
+      parentNFTcontractAddress: eventFourth.address,
+      parentNFTtokenId: eventFourth.args.tokenId.toNumber()
+    });
+
+    const txFifth = await redeemerContract.redeem(redeemer.address, voucherOfFifthNuke, { value: 0 })
+    await txFifth.wait();
+    const rcFifth = await txFifth.wait();
+    const eventFifth = rcFifth.events.find(event => event.event === 'Transfer');
+
+    const nftInitial = {
       chainId: voucherOfInitialNuke.parentNFTChainId,
       contractAddress: voucherOfInitialNuke.parentNFTcontractAddress,
       tokenId: voucherOfInitialNuke.parentNFTtokenId
+    }
+
+    const nftFirst = {
+      chainId: voucherOfFirstNuke.parentNFTChainId,
+      contractAddress: voucherOfFirstNuke.parentNFTcontractAddress,
+      tokenId: voucherOfFirstNuke.parentNFTtokenId
     }
 
     const nftSecond = {
@@ -191,24 +301,50 @@ describe("Nucleart - Rules", function () {
       tokenId: voucherOfSecondNuke.parentNFTtokenId
     }
 
-    const levelFirst = await contract.getLevel(nftFirst)
-    const levelSecond = await contract.getLevel(nftSecond)
-
-    expect(levelFirst).to.equal(1)
-    expect(levelSecond).to.equal(2)
-  });
-
-  it("Should return a level of 0 to a NFT that has not been nuked yet", async function () {
-    const randomNft = {
-      chainId: 123,
-      contractAddress: "0x0000000000000000000000000000000000000123",
-      tokenId: 123135
+    const nftThird = {
+      chainId: voucherOfThirdNuke.parentNFTChainId,
+      contractAddress: voucherOfThirdNuke.parentNFTcontractAddress,
+      tokenId: voucherOfThirdNuke.parentNFTtokenId
     }
 
-    const randomNftLevel = await contract.getLevel(randomNft)
+    const nftFourth = {
+      chainId: voucherOfFourthNuke.parentNFTChainId,
+      contractAddress: voucherOfFourthNuke.parentNFTcontractAddress,
+      tokenId: voucherOfFourthNuke.parentNFTtokenId
+    }
 
-    expect(randomNftLevel).to.equal(0)
+    const nftFifth = {
+      chainId: voucherOfFifthNuke.parentNFTChainId,
+      contractAddress: voucherOfFifthNuke.parentNFTcontractAddress,
+      tokenId: voucherOfFifthNuke.parentNFTtokenId
+    }
+
+    const levelZero = await contract.getLevel(nftInitial)
+    const levelFirst = await contract.getLevel(nftFirst)
+    const levelSecond = await contract.getLevel(nftSecond)
+    const levelThird = await contract.getLevel(nftThird)
+    const levelFourth = await contract.getLevel(nftFourth)
+    const levelFifth = await contract.getLevel(nftFifth)
+
+    expect(levelZero).to.be.equal(0)
+    expect(levelFirst).to.equal(1)
+    expect(levelSecond).to.equal(2)
+    expect(levelThird).to.equal(3)
+    expect(levelFourth).to.equal(4)
+    expect(levelFifth).to.equal(5)
+
+    const voucherOfSixthNuke = await lazyMinter.createVoucher({
+      uri: "ipfs://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi",
+      parentNFTChainId: chainId,
+      parentNFTcontractAddress: eventFifth.address,
+      parentNFTtokenId: eventFifth.args.tokenId.toNumber()
+    })
+
+    await expect(redeemerContract.redeem(redeemer.address, voucherOfSixthNuke, { value: 0 }))
+      .to.be.revertedWith('This NFT reached its maximum level of radioactivity')
+
   });
+
 })
 
 // describe("Nucleart - Pricing", function () {

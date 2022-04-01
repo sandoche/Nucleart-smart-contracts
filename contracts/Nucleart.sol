@@ -111,7 +111,7 @@ contract Nucleart is
 
         // make sure the level is not above the limit then upgrade level
         require(
-            getLevel(parentNFT) < MAX_LEVEL,
+            getLevel(parentNFT) <= MAX_LEVEL,
             "This NFT reached its maximum level of radioactivity"
         );
 
@@ -210,20 +210,16 @@ contract Nucleart is
     }
 
     function getLevel(NFT memory nft) public view virtual returns (uint8) {
-        if (hasBeenNuked(nft)) {
-            uint8 level = 1;
+        uint8 level = 0;
 
-            NFT memory currentChild = nft;
+        NFT memory currentChild = nft;
 
-            while (getParentNft(currentChild).chainId > 0) {
-                level++;
-                currentChild = getParentNft(currentChild);
-            }
-
-            return level;
-        } else {
-            return 0;
+        while (getParentNft(currentChild).chainId > 0) {
+            level++;
+            currentChild = getParentNft(currentChild);
         }
+
+        return level;
     }
 
     function _saveRelation(NFT memory childNft, NFT memory parentNft) internal {
@@ -260,7 +256,7 @@ contract Nucleart is
         return _childNftHashToNftParent[_childNftHash];
     }
 
-    function hasBeenNuked(NFT memory nft) internal view returns (bool) {
+    function hasBeenNuked(NFT memory nft) public view returns (bool) {
         return _nftHasBeenNuked[_nftHash(nft)];
     }
 
