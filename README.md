@@ -15,12 +15,9 @@
 Original NFT => Radioactive NFT (Level 1) => Radioactive NFT (Level 2) => Radioactive NFT (Level 3) => Radioactive NFT (Level 4) => Radioactive NFT (Level 5)
 ```
 
-- None of the NFTs will be destroyed (except if you as the owner decide to burn it)
-
 ## Features (from OpenZeppelin)
 
 - Mintable
-- Burnable
 - URI Storage
 - Roles
 - Enumerable
