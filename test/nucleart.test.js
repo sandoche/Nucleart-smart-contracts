@@ -121,7 +121,6 @@ describe("Nucleart - Rules", function () {
   it("Should fail to nuke an NFT that's already been nuked", async function () {
     const lazyMinter = new LazyMinter({ contract, signer: minter })
     const voucher = await lazyMinter.createVoucher({
-      tokenId: 1,
       uri: "ipfs://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi",
       parentNFTChainId: 1,
       parentNFTcontractAddress: "0x0000000000000000000000000000000000000999",
@@ -136,6 +135,22 @@ describe("Nucleart - Rules", function () {
 
     await expect(redeemerContract.redeem(redeemer.address, voucher))
       .to.be.revertedWith('This NFT has already been nuked')
+  });
+
+  it("Should auto increment the tokenId", async function () {
+    const lazyMinter = new LazyMinter({ contract, signer: minter })
+    const voucherArray = await createArrayOfRandomVouchers(lazyMinter, 3)
+
+    let i = 0
+
+    for (const voucher of voucherArray) {
+      await expect(redeemerContract.redeem(redeemer.address, voucher, { value: 0 }))
+        .to.emit(contract, 'Transfer')
+        .withArgs('0x0000000000000000000000000000000000000999', minter.address, i)
+        .and.to.emit(contract, 'Transfer')
+        .withArgs(minter.address, redeemer.address, i)
+      i++
+    }
   });
 
 })

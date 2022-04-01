@@ -2,7 +2,14 @@ const createArrayOfRandomVouchers = async (lazyMinter, numberOfVouchers) => {
   const vouchers = []
 
   for (let i = 0; i < numberOfVouchers; i++) {
-    vouchers.push(await lazyMinter.createVoucher(i, "ipfs://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy5" + i))
+    vouchers.push(await lazyMinter.createVoucher(
+      {
+        uri: "ipfs://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi" + i,
+        parentNFTChainId: 1,
+        parentNFTcontractAddress: "0x1000000000000000000000000000000000000777",
+        parentNFTtokenId: i,
+      }
+    ))
   }
 
   return vouchers
