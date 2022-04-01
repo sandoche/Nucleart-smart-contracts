@@ -9,6 +9,7 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/utils/cryptography/draft-EIP712.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Royalty.sol";
+import "@openzeppelin/contracts/utils/Counters.sol";
 
 contract Nucleart is
     ERC721,
@@ -19,16 +20,17 @@ contract Nucleart is
     EIP712,
     ERC721Royalty
 {
+    using Counters for Counters.Counter;
+
+    Counters.Counter private _tokenIdCounter;
+
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
     string private constant SIGNING_DOMAIN = "Nucleart-Voucher";
     string private constant SIGNATURE_VERSION = "1";
-
-    // to delete
-    // mapping(bytes32 => uint8) private _tokenUriHashToLevel;
+    uint8 public constant MAX_LEVEL = 5;
 
     // Max supply based on the number of Nuclear Warhead available in January 2021, source: https://www.statista.com/statistics/264435/number-of-nuclear-warheads-worldwide/
     uint256 public constant MAX_SUPPLY = 13080;
-    uint8 public constant MAX_LEVEL = 5;
 
     mapping(bytes32 => NFT) private _childNftHashToNftParent;
 
@@ -106,13 +108,6 @@ contract Nucleart is
             voucher.parentNFTtokenId
         );
 
-        // get the children NFT
-        NFT memory childNFT = _constructNft(
-            voucher.childNFTChainId,
-            voucher.childNFTcontractAddress,
-            voucher.childNFTtokenId
-        );
-
         // make sure that this parent NFT is not already minted
         require(
             hasBeenBombed(parentNFT) == false,
@@ -124,15 +119,24 @@ contract Nucleart is
             getLevel(parentNFT) < MAX_LEVEL,
             "This NFT reached its maximum level of radioactivity"
         );
-        saveRelation(childNFT, parentNFT);
 
-        // first assign the token to the signer, to establish provenance on-chain
-        _lazyMint(signer, voucher.tokenId, voucher.uri);
+        // mint the token
+        uint256 _tokenId = _lazyMint(signer, voucher.uri);
 
         // transfer the token to the redeemer
-        _transfer(signer, redeemer, voucher.tokenId);
+        _transfer(signer, redeemer, _tokenId);
 
-        return voucher.tokenId;
+        // get the children NFT
+        NFT memory childNFT = _constructNft(
+            _getChainID(),
+            address(this),
+            _tokenId
+        );
+
+        // save the child parent relationship
+        saveRelation(childNFT, parentNFT);
+
+        return _tokenId;
     }
 
     /// @notice Verifies the signature for a given NFTVoucher, returning the address of the signer.
@@ -174,22 +178,16 @@ contract Nucleart is
             );
     }
 
-    function _lazyMint(
-        address to,
-        uint256 tokenId,
-        string memory uri
-    ) internal {
+    function _lazyMint(address to, string memory uri)
+        internal
+        returns (uint256)
+    {
+        uint256 tokenId = _tokenIdCounter.current();
+        _tokenIdCounter.increment();
         _safeMint(to, tokenId);
         _setTokenURI(tokenId, uri);
-    }
 
-    function safeMint(
-        address to,
-        uint256 tokenId,
-        string memory uri
-    ) public onlyRole(MINTER_ROLE) {
-        _safeMint(to, tokenId);
-        _setTokenURI(tokenId, uri);
+        return tokenId;
     }
 
     function changeRoyaltyReceiver(address newRoyaltyReceiver)
@@ -272,6 +270,14 @@ contract Nucleart is
     /// @dev This is used to workaround an issue with ganache returning different values from the on-chain chainid() function and
     ///  the eth_chainId RPC method. See https://github.com/protocol/nft-website/issues/121 for context.
     function getChainID() external view returns (uint256) {
+        uint256 id;
+        assembly {
+            id := chainid()
+        }
+        return id;
+    }
+
+    function _getChainID() internal view returns (uint256) {
         uint256 id;
         assembly {
             id := chainid()

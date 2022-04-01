@@ -57,9 +57,9 @@ describe("Nucleart - Signature", function () {
 
     await expect(redeemerContract.redeem(redeemer.address, voucher))
       .to.emit(contract, 'Transfer')  // transfer from null address to minter
-      .withArgs('0x0000000000000000000000000000000000000000', minter.address, voucher.tokenId)
+      .withArgs('0x0000000000000000000000000000000000000000', minter.address, 0)
       .and.to.emit(contract, 'Transfer') // transfer from minter to redeemer
-      .withArgs(minter.address, redeemer.address, voucher.tokenId);
+      .withArgs(minter.address, redeemer.address, 0);
   });
 
 
