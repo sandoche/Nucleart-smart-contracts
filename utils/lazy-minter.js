@@ -39,12 +39,11 @@ class LazyMinter {
    * 
    * @returns {NFTVoucher}
    */
-  async createVoucher({ tokenId, uri, parentNFTChainId, parentNFTcontractAddress, parentNFTtokenId }) {
-    const voucher = { tokenId, uri, parentNFTChainId, parentNFTcontractAddress, parentNFTtokenId }
+  async createVoucher({ uri, parentNFTChainId, parentNFTcontractAddress, parentNFTtokenId }) {
+    const voucher = { uri, parentNFTChainId, parentNFTcontractAddress, parentNFTtokenId }
     const domain = await this._signingDomain()
     const types = {
       NFTVoucher: [
-        { name: "tokenId", type: "uint256" },
         { name: "uri", type: "string" },
         { name: "parentNFTChainId", type: "uint256" },
         { name: "parentNFTcontractAddress", type: "address" },

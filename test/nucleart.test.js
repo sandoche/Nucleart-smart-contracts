@@ -45,7 +45,6 @@ describe("Nucleart - Signature", function () {
   it("Should redeem an NFT from a signed voucher", async function () {
     const lazyMinter = new LazyMinter({ contract, signer: minter })
     const voucher = await lazyMinter.createVoucher({
-      tokenId: 1,
       uri: "ipfs://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi",
       parentNFTChainId: 1,
       parentNFTcontractAddress: "0x0000000000000000000000000000000000000999",
@@ -59,24 +58,36 @@ describe("Nucleart - Signature", function () {
       .withArgs(minter.address, redeemer.address, 0);
   });
 
-  // it("Should fail to redeem an NFT voucher that's signed by an unauthorized account", async function () {
-  //   const signers = await ethers.getSigners()
-  //   const rando = signers[signers.length - 1];
+  it("Should fail to redeem an NFT voucher that's signed by an unauthorized account", async function () {
+    const signers = await ethers.getSigners()
+    const rando = signers[signers.length - 1];
 
-  //   const lazyMinter = new LazyMinter({ contract, signer: rando })
-  //   const voucher = await lazyMinter.createVoucher(1, "ipfs://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi")
+    const lazyMinter = new LazyMinter({ contract, signer: rando })
+    const voucher = await lazyMinter.createVoucher({
+      uri: "ipfs://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi",
+      parentNFTChainId: 1,
+      parentNFTcontractAddress: "0x0000000000000000000000000000000000000999",
+      parentNFTtokenId: 1,
+    })
 
-  //   await expect(redeemerContract.redeem(redeemer.address, voucher))
-  //     .to.be.revertedWith('Signature invalid or unauthorized')
-  // });
+    await expect(redeemerContract.redeem(redeemer.address, voucher))
+      .to.be.revertedWith('Signature invalid or unauthorized')
+  });
 
-  // it("Should fail to redeem an NFT voucher that's been modified", async function () {
-  //   const lazyMinter = new LazyMinter({ contract, signer: minter })
-  //   const voucher = await lazyMinter.createVoucher(2, "ipfs://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi")
-  //   voucher.tokenId = 3
-  //   await expect(redeemerContract.redeem(redeemer.address, voucher))
-  //     .to.be.revertedWith('Signature invalid or unauthorized')
-  // });
+  it("Should fail to redeem an NFT voucher that's been modified", async function () {
+    const lazyMinter = new LazyMinter({ contract, signer: minter })
+
+    const voucher = await lazyMinter.createVoucher({
+      uri: "ipfs://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi",
+      parentNFTChainId: 1,
+      parentNFTcontractAddress: "0x0000000000000000000000000000000000000999",
+      parentNFTtokenId: 1,
+    })
+
+    voucher.parentNFTChainId = 3
+    await expect(redeemerContract.redeem(redeemer.address, voucher))
+      .to.be.revertedWith('Signature invalid or unauthorized')
+  });
 
   // it("Should fail to redeem an NFT voucher with an invalid signature", async function () {
   //   const lazyMinter = new LazyMinter({ contract, signer: minter })

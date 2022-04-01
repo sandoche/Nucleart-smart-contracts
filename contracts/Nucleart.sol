@@ -54,8 +54,6 @@ contract Nucleart is
 
     /// @notice Represents an un-minted NFT, which has not yet been recorded into the blockchain. A signed voucher can be redeemed for a real NFT using the redeem function.
     struct NFTVoucher {
-        /// @notice The id of the token to be redeemed. Must be unique - if another token with this ID already exists, the redeem function will revert.
-        uint256 tokenId;
         /// @notice The metadata URI to associate with this token.
         string uri;
         /// @notice The chain id of the parent NFT.
@@ -159,9 +157,8 @@ contract Nucleart is
                 keccak256(
                     abi.encode(
                         keccak256(
-                            "NFTVoucher(uint256 tokenId,string uri,uint256 parentNFTChainId,address parentNFTcontractAddress,uint256 parentNFTtokenId)"
+                            "NFTVoucher(string uri,uint256 parentNFTChainId,address parentNFTcontractAddress,uint256 parentNFTtokenId)"
                         ),
-                        voucher.tokenId,
                         keccak256(bytes(voucher.uri)),
                         voucher.parentNFTChainId,
                         voucher.parentNFTcontractAddress,
