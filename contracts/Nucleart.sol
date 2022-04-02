@@ -169,7 +169,6 @@ contract Nucleart is
 
     function _lazyMint(address to, string memory uri)
         internal
-        nonReentrant
         returns (uint256)
     {
         uint256 tokenId = _tokenIdCounter.current();
@@ -232,15 +231,12 @@ contract Nucleart is
         return level;
     }
 
-    function _saveRelation(NFT memory childNft, NFT memory parentNft)
-        internal
-        nonReentrant
-    {
+    function _saveRelation(NFT memory childNft, NFT memory parentNft) internal {
         bytes32 _childNftHash = _nftHash(childNft);
         _childNftHashToNftParent[_childNftHash] = parentNft;
     }
 
-    function _markNFTAsNuked(NFT memory nft) internal nonReentrant {
+    function _markNFTAsNuked(NFT memory nft) internal {
         _nftHasBeenNuked[_nftHash(nft)] = true;
     }
 
