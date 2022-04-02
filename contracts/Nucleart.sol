@@ -9,8 +9,7 @@ import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/utils/cryptography/draft-EIP712.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Royalty.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
-
-import "hardhat/console.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 contract Nucleart is
     ERC721,
@@ -18,7 +17,8 @@ contract Nucleart is
     ERC721URIStorage,
     AccessControl,
     EIP712,
-    ERC721Royalty
+    ERC721Royalty,
+    ReentrancyGuard
 {
     using Counters for Counters.Counter;
 
@@ -74,6 +74,7 @@ contract Nucleart is
     function redeem(address redeemer, NFTVoucher calldata voucher)
         public
         payable
+        nonReentrant
         returns (uint256)
     {
         // make sure signature is valid and get the address of the signer
@@ -168,6 +169,7 @@ contract Nucleart is
 
     function _lazyMint(address to, string memory uri)
         internal
+        nonReentrant
         returns (uint256)
     {
         uint256 tokenId = _tokenIdCounter.current();
@@ -180,9 +182,19 @@ contract Nucleart is
 
     function changeRoyaltyReceiver(address newRoyaltyReceiver)
         public
+        nonReentrant
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
         _setDefaultRoyalty(newRoyaltyReceiver, 1000);
+    }
+
+    function withdraw(address to)
+        public
+        nonReentrant
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        (bool success, ) = msg.sender.call{value: address(to).balance}("");
+        require(success, "Withdrawal failed");
     }
 
     function getCurrentPrice() public view returns (uint256) {
@@ -220,12 +232,15 @@ contract Nucleart is
         return level;
     }
 
-    function _saveRelation(NFT memory childNft, NFT memory parentNft) internal {
+    function _saveRelation(NFT memory childNft, NFT memory parentNft)
+        internal
+        nonReentrant
+    {
         bytes32 _childNftHash = _nftHash(childNft);
         _childNftHashToNftParent[_childNftHash] = parentNft;
     }
 
-    function _markNFTAsNuked(NFT memory nft) internal {
+    function _markNFTAsNuked(NFT memory nft) internal nonReentrant {
         _nftHasBeenNuked[_nftHash(nft)] = true;
     }
 
