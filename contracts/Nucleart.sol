@@ -187,12 +187,8 @@ contract Nucleart is
         _setDefaultRoyalty(newRoyaltyReceiver, 1000);
     }
 
-    function withdraw(address to)
-        public
-        nonReentrant
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
-        (bool success, ) = msg.sender.call{value: address(to).balance}("");
+    function withdraw() public nonReentrant onlyRole(DEFAULT_ADMIN_ROLE) {
+        (bool success, ) = msg.sender.call{value: address(this).balance}("");
         require(success, "Withdrawal failed");
     }
 

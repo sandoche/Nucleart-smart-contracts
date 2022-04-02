@@ -438,12 +438,37 @@ describe("Nucleart - Pricing", function () {
       .to.be.revertedWith('INSUFFICIENT_FUNDS')
   })
 
-  it("Should redeem if payment is following the pricing table for the 1300 first NFTs", async function () {
+  // it("Should redeem if payment is following the pricing table for the 1300 first NFTs", async function () {
+  //   const lazyMinter = new LazyMinter({ contract, signer: minter })
+  //   const voucherArray = await createArrayOfRandomVouchers(lazyMinter, 1300)
+  //   const pricingTable = generatePricingTable()
+  //   let i = 0
+  //   const minPrice = ethers.constants.WeiPerEther
+
+  //   for (const voucher of voucherArray) {
+  //     await expect(redeemerContract.redeem(redeemer.address, voucher, { value: BigInt(pricingTable[i] * minPrice) }))
+  //       .to.emit(contract, 'Transfer')  // transfer from null address to minter
+  //       .withArgs('0x0000000000000000000000000000000000000999', minter.address, i)
+  //       .and.to.emit(contract, 'Transfer') // transfer from minter to redeemer
+  //       .withArgs(minter.address, redeemer.address, i)
+
+  //     i++
+  //   }
+  // })
+
+  it("Should fail if withdrawer is not DEFAULT_ADMIN_ROLE", async function () {
+    await expect(redeemerContract.withdraw({ value: 0 }))
+      .to.be.revertedWith('AccessControl')
+  })
+
+  it("Should have a balance that grows of 20 MATIC", async function () {
     const lazyMinter = new LazyMinter({ contract, signer: minter })
-    const voucherArray = await createArrayOfRandomVouchers(lazyMinter, 1300)
+    const voucherArray = await createArrayOfRandomVouchers(lazyMinter, 100)
     const pricingTable = generatePricingTable()
     let i = 0
     const minPrice = ethers.constants.WeiPerEther
+
+    const contractBalanceInitial = await contract.provider.getBalance(contract.address)
 
     for (const voucher of voucherArray) {
       await expect(redeemerContract.redeem(redeemer.address, voucher, { value: BigInt(pricingTable[i] * minPrice) }))
@@ -454,7 +479,39 @@ describe("Nucleart - Pricing", function () {
 
       i++
     }
+
+    const contractBalanceFinal = await contract.provider.getBalance(contract.address)
+
+    const balance = contractBalanceFinal.sub(contractBalanceInitial)
+
+    expect(balance).to.be.equal(BigInt(20 * minPrice))
   })
+
+  // it("Should let withdraw the balance to any address when called from DEFAULT_ADMIN_ROLE", async function () {
+  //   const lazyMinter = new LazyMinter({ contract, signer: minter })
+  //   const voucherArray = await createArrayOfRandomVouchers(lazyMinter, 100)
+  //   const pricingTable = generatePricingTable()
+  //   let i = 0
+  //   const minPrice = ethers.constants.WeiPerEther
+
+  //   for (const voucher of voucherArray) {
+  //     await expect(redeemerContract.redeem(redeemer.address, voucher, { value: BigInt(pricingTable[i] * minPrice) }))
+  //       .to.emit(contract, 'Transfer')  // transfer from null address to minter
+  //       .withArgs('0x0000000000000000000000000000000000000999', minter.address, i)
+  //       .and.to.emit(contract, 'Transfer') // transfer from minter to redeemer
+  //       .withArgs(minter.address, redeemer.address, i)
+
+  //     i++
+  //   }
+
+  //   const tx = await contract.withdraw({ value: 0 })
+  //   const rc = await tx.wait();
+  //   console.log('tooooooo')
+  //   console.log(rc);
+  //   console.log(tx);
+
+
+  // })
 })
 
 describe("Nucleart - Max supply", function () {
