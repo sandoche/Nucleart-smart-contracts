@@ -38,3 +38,16 @@ Original NFT => Radioactive NFT (Level 1) => Radioactive NFT (Level 2) => Radioa
 ## Royalties fees
 
 10% of Royalties fees implemented with EIP2981
+
+## Tests
+
+```sh
+# Unit tests
+npm test
+
+# Static tests
+docker pull trailofbits/eth-security-toolbox
+docker run -it -v "$PWD":/home/nucleart trailofbits/eth-security-toolbox
+cd /home/nucleart
+slither .
+```
