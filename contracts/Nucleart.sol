@@ -4,30 +4,36 @@ pragma solidity ^0.8.4;
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/utils/cryptography/draft-EIP712.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Royalty.sol";
+import "@openzeppelin/contracts/utils/Counters.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 contract Nucleart is
     ERC721,
     ERC721Enumerable,
     ERC721URIStorage,
-    ERC721Burnable,
     AccessControl,
     EIP712,
-    ERC721Royalty
+    ERC721Royalty,
+    ReentrancyGuard
 {
+    using Counters for Counters.Counter;
+
+    Counters.Counter private _tokenIdCounter;
+
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
     string private constant SIGNING_DOMAIN = "Nucleart-Voucher";
     string private constant SIGNATURE_VERSION = "1";
+    uint8 public constant MAX_LEVEL = 5;
 
     // Max supply based on the number of Nuclear Warhead available in January 2021, source: https://www.statista.com/statistics/264435/number-of-nuclear-warheads-worldwide/
     uint256 public constant MAX_SUPPLY = 13080;
-    uint8 public constant MAX_LEVEL = 5;
 
-    mapping(bytes32 => uint8) private _tokenUriHashToLevel;
+    mapping(bytes32 => NFT) private _childNftHashToNftParent;
+    mapping(bytes32 => bool) private _nftHasBeenNuked;
 
     constructor(address payable minter)
         ERC721("Nucleart", "NART")
@@ -38,12 +44,22 @@ contract Nucleart is
         _setDefaultRoyalty(msg.sender, 1000);
     }
 
+    struct NFT {
+        uint256 chainId;
+        address contractAddress;
+        uint256 tokenId;
+    }
+
     /// @notice Represents an un-minted NFT, which has not yet been recorded into the blockchain. A signed voucher can be redeemed for a real NFT using the redeem function.
     struct NFTVoucher {
-        /// @notice The id of the token to be redeemed. Must be unique - if another token with this ID already exists, the redeem function will revert.
-        uint256 tokenId;
         /// @notice The metadata URI to associate with this token.
         string uri;
+        /// @notice The chain id of the parent NFT.
+        uint256 parentNFTChainId;
+        /// @notice The contract address of the parent NFT.
+        address parentNFTcontractAddress;
+        /// @notice The token id of the parent NFT.
+        uint256 parentNFTtokenId;
         /// @notice the EIP-712 signature of all other fields in the NFTVoucher struct. For a voucher to be valid, it must be signed by an account with the MINTER_ROLE.
         bytes signature;
     }
@@ -58,6 +74,7 @@ contract Nucleart is
     function redeem(address redeemer, NFTVoucher calldata voucher)
         public
         payable
+        nonReentrant
         returns (uint256)
     {
         // make sure signature is valid and get the address of the signer
@@ -78,20 +95,41 @@ contract Nucleart is
             "All the nucleart warheads have been used"
         );
 
+        // get the parent NFT
+        NFT memory parentNFT = _constructNft(
+            voucher.parentNFTChainId,
+            voucher.parentNFTcontractAddress,
+            voucher.parentNFTtokenId
+        );
+
+        // make sure that this parent NFT is not already minted
+        require(
+            hasBeenNuked(parentNFT) == false,
+            "This NFT has already been nuked"
+        );
+
         // make sure the level is not above the limit then upgrade level
         require(
-            getLevelFromUri(voucher.uri) < MAX_LEVEL,
+            getLevel(parentNFT) <= MAX_LEVEL,
             "This NFT reached its maximum level of radioactivity"
         );
-        _setOrUpgradeVersion(voucher.uri);
 
-        // first assign the token to the signer, to establish provenance on-chain
-        _lazyMint(signer, voucher.tokenId, voucher.uri);
+        // mint and send the NFT
+        uint256 _tokenId = _lazyMint(signer, voucher.uri);
+        _transfer(signer, redeemer, _tokenId);
 
-        // transfer the token to the redeemer
-        _transfer(signer, redeemer, voucher.tokenId);
+        // get the children NFT
+        NFT memory childNFT = _constructNft(
+            getChainID(),
+            address(this),
+            _tokenId
+        );
 
-        return voucher.tokenId;
+        // Save relation and mark NFT as nuked
+        _saveRelation(childNFT, parentNFT);
+        _markNFTAsNuked(parentNFT);
+
+        return _tokenId;
     }
 
     /// @notice Verifies the signature for a given NFTVoucher, returning the address of the signer.
@@ -117,37 +155,143 @@ contract Nucleart is
             _hashTypedDataV4(
                 keccak256(
                     abi.encode(
-                        keccak256("NFTVoucher(uint256 tokenId,string uri)"),
-                        voucher.tokenId,
-                        keccak256(bytes(voucher.uri))
+                        keccak256(
+                            "NFTVoucher(string uri,uint256 parentNFTChainId,address parentNFTcontractAddress,uint256 parentNFTtokenId)"
+                        ),
+                        keccak256(bytes(voucher.uri)),
+                        voucher.parentNFTChainId,
+                        voucher.parentNFTcontractAddress,
+                        voucher.parentNFTtokenId
                     )
                 )
             );
     }
 
-    function _lazyMint(
-        address to,
-        uint256 tokenId,
-        string memory uri
-    ) internal {
+    function _lazyMint(address to, string memory uri)
+        internal
+        returns (uint256)
+    {
+        uint256 tokenId = _tokenIdCounter.current();
+        _tokenIdCounter.increment();
         _safeMint(to, tokenId);
         _setTokenURI(tokenId, uri);
-    }
 
-    function safeMint(
-        address to,
-        uint256 tokenId,
-        string memory uri
-    ) public onlyRole(MINTER_ROLE) {
-        _safeMint(to, tokenId);
-        _setTokenURI(tokenId, uri);
+        return tokenId;
     }
 
     function changeRoyaltyReceiver(address newRoyaltyReceiver)
         public
+        nonReentrant
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
         _setDefaultRoyalty(newRoyaltyReceiver, 1000);
+    }
+
+    function withdraw() public nonReentrant onlyRole(DEFAULT_ADMIN_ROLE) {
+        (bool success, ) = msg.sender.call{value: address(this).balance}("");
+        require(success, "Withdrawal failed");
+    }
+
+    function getCurrentPrice() public view returns (uint256) {
+        uint256 price;
+
+        if (totalSupply() < 80) {
+            price = 0;
+        } else if (totalSupply() < 320) {
+            price = 1;
+        } else if (totalSupply() < 1280) {
+            price = 10;
+        } else if (totalSupply() < 5120) {
+            price = 100;
+        } else if (totalSupply() < 13000) {
+            price = 1000;
+        } else if (totalSupply() < 13070) {
+            price = 10000;
+        } else {
+            price = 100000;
+        }
+
+        return price * 10**18;
+    }
+
+    function getLevel(NFT memory nft) public view virtual returns (uint8) {
+        uint8 level = 0;
+
+        NFT memory currentChild = nft;
+
+        while (getParentNft(currentChild).chainId > 0) {
+            level++;
+            currentChild = getParentNft(currentChild);
+        }
+
+        return level;
+    }
+
+    function _saveRelation(NFT memory childNft, NFT memory parentNft) internal {
+        bytes32 _childNftHash = _nftHash(childNft);
+        _childNftHashToNftParent[_childNftHash] = parentNft;
+    }
+
+    function _markNFTAsNuked(NFT memory nft) internal {
+        _nftHasBeenNuked[_nftHash(nft)] = true;
+    }
+
+    function _constructNft(
+        uint256 chainId,
+        address contractAddress,
+        uint256 tokenId
+    ) internal pure returns (NFT memory) {
+        NFT memory _nft = NFT(chainId, contractAddress, tokenId);
+        return _nft;
+    }
+
+    function _nftHash(NFT memory nft) internal pure returns (bytes32) {
+        return
+            keccak256(
+                abi.encodePacked(nft.chainId, nft.contractAddress, nft.tokenId)
+            );
+    }
+
+    function getParentNft(NFT memory childNft)
+        public
+        view
+        returns (NFT memory)
+    {
+        bytes32 _childNftHash = _nftHash(childNft);
+        return _childNftHashToNftParent[_childNftHash];
+    }
+
+    function hasBeenNuked(NFT memory nft) public view returns (bool) {
+        return _nftHasBeenNuked[_nftHash(nft)];
+    }
+
+    /// @notice Returns the chain id of the current blockchain.
+    /// @dev This is used to workaround an issue with ganache returning different values from the on-chain chainid() function and
+    ///  the eth_chainId RPC method. See https://github.com/protocol/nft-website/issues/121 for context.
+    function getChainID() public view returns (uint256) {
+        uint256 id;
+        assembly {
+            id := chainid()
+        }
+        return id;
+    }
+
+    function replaceAdminRole(address oldAdmin, address newAdmin)
+        public
+        nonReentrant
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        _revokeRole(DEFAULT_ADMIN_ROLE, oldAdmin);
+        _setupRole(DEFAULT_ADMIN_ROLE, newAdmin);
+    }
+
+    function replaceMinterRole(address oldMinter, address newMinter)
+        public
+        nonReentrant
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        _revokeRole(MINTER_ROLE, oldMinter);
+        _setupRole(MINTER_ROLE, newMinter);
     }
 
     // The following functions are overrides required by Solidity.
@@ -184,60 +328,4 @@ contract Nucleart is
     {
         return super.supportsInterface(interfaceId);
     }
-
-    function getCurrentPrice() public view returns (uint256) {
-        uint256 price;
-
-        if (totalSupply() < 80) {
-            price = 0;
-        } else if (totalSupply() < 320) {
-            price = 1;
-        } else if (totalSupply() < 1280) {
-            price = 10;
-        } else if (totalSupply() < 5120) {
-            price = 100;
-        } else if (totalSupply() < 13000) {
-            price = 1000;
-        } else if (totalSupply() < 13070) {
-            price = 10000;
-        } else {
-            price = 100000;
-        }
-
-        return price * 10**18;
-    }
-
-    function _uriHash(string calldata uri) internal pure returns (bytes32) {
-        return keccak256(bytes(uri));
-    }
-
-    function _setOrUpgradeVersion(string calldata uri) internal {
-        bytes32 _uriHashed = _uriHash(uri);
-        uint8 _level = getLevelFromUri(uri);
-        _level++;
-        _tokenUriHashToLevel[_uriHashed] = _level;
-    }
-
-    function getLevelFromUri(string calldata uri)
-        public
-        view
-        virtual
-        returns (uint8)
-    {
-        bytes32 _uriHashed = _uriHash(uri);
-        uint8 _level = _tokenUriHashToLevel[_uriHashed];
-        return _level;
-    }
-
-  /// @notice Returns the chain id of the current blockchain.
-  /// @dev This is used to workaround an issue with ganache returning different values from the on-chain chainid() function and
-  ///  the eth_chainId RPC method. See https://github.com/protocol/nft-website/issues/121 for context.
-  function getChainID() external view returns (uint256) {
-    uint256 id;
-    assembly {
-        id := chainid()
-    }
-    return id;
-  }
-
 }

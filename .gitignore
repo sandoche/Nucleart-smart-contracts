@@ -97,3 +97,5 @@ typings/
 #Hardhat files
 cache
 artifacts
+
+crytic-export

@@ -1,17 +1,33 @@
 # Nucleart - Smart Contracts
 
+[![License](https://img.shields.io/github/license/mashape/apistatus.svg)](./LICENSE)
+[![Medium Badge](https://badgen.net/badge/icon/medium?icon=medium&label)](https://medium.com/@sandoche)
+[![Twitter: sandochee](https://img.shields.io/twitter/follow/sandochee.svg?style=social)](https://twitter.com/sandochee)
+
 > ☢️ Nuke any NFT and receive a new radioactive NFT
 
-## Features (from OpenZeppelin)
+## 📜 Rules
+
+- Your original NFT will stay on your wallet, Nucleart will never ask you to transfer it
+- You can only nuke an NFT that you own (the ownership will be checked using your signature by the oracle)
+- Nuking your NFT will result in a new mint of radioactive NFT that will be transfered to you
+- You can nuke an NFT only once
+- You can nuke the radioactive NFT
+- You can only chain nuke 5 times
+
+```
+Original NFT => Radioactive NFT (Level 1) => Radioactive NFT (Level 2) => Radioactive NFT (Level 3) => Radioactive NFT (Level 4) => Radioactive NFT (Level 5)
+```
+
+## 💡 Features (from OpenZeppelin)
 
 - Mintable
-- Burnable
 - URI Storage
 - Roles
 - Enumerable
 - Royalties
 
-## Pricing model
+## 🏷️ Pricing model
 
 | From  | To    | Price        |
 | ----- | ----- | ------------ |
@@ -23,6 +39,25 @@
 | 13001 | 13070 | 10000 MATIC  |
 | 13071 | 13080 | 100000 MATIC |
 
-## Royalties fees
+## 🎟️ Royalties fees
 
 10% of Royalties fees implemented with EIP2981
+
+## ✅ Tests
+
+```sh
+# Unit & integration tests
+npm test
+
+# Static tests
+docker pull trailofbits/eth-security-toolbox
+docker run -it -v "$PWD":/home/nucleart trailofbits/eth-security-toolbox
+cd /home/nucleart
+slither .
+```
+
+## 📄 License
+
+[MIT License](./LICENSE)
+
+Copyright (c) Sandoche Adittane
