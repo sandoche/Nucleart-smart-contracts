@@ -198,8 +198,6 @@ describe("Nucleart - Roles", function () {
 
 })
 
-/*
-
 describe("Nucleart - Rules", function () {
   let contract, redeemerContract, redeemer, minter
 
@@ -651,4 +649,3 @@ describe("Nucleart - Max supply", function () {
       .to.be.revertedWith('All the nucleart warheads have been used')
   })
 })
-*/
