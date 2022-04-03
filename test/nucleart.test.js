@@ -4,7 +4,7 @@ const { createArrayOfRandomVouchers, generatePricingTable } = require("../utils/
 const { LazyMinter } = require('../utils/lazy-minter.js')
 
 async function deploy() {
-  const [minter, redeemer, _] = await ethers.getSigners()
+  const [minter, newAdmin, newMinter, redeemer, _] = await ethers.getSigners()
 
   let factory = await ethers.getContractFactory("Nucleart", minter)
   const contract = await factory.deploy(minter.address)
@@ -13,11 +13,21 @@ async function deploy() {
   const redeemerFactory = factory.connect(redeemer)
   const redeemerContract = redeemerFactory.attach(contract.address)
 
+  const newAdminFactory = factory.connect(newAdmin)
+  const newAdminContract = newAdminFactory.attach(contract.address)
+
+  const newMinterFactory = factory.connect(newMinter)
+  const newMinterContract = newMinterFactory.attach(contract.address)
+
   return {
     minter,
     redeemer,
+    newAdmin,
+    newMinter,
     contract,
     redeemerContract,
+    newAdminContract,
+    newMinterContract
   }
 }
 
@@ -105,6 +115,90 @@ describe("Nucleart - Signature", function () {
       .to.be.revertedWith('Signature invalid or unauthorized')
   });
 })
+
+describe("Nucleart - Roles", function () {
+  let contract, redeemerContract, redeemer, minter
+
+  beforeEach(async function () {
+    const contractData = await deploy()
+
+    contract = contractData.contract
+    redeemerContract = contractData.redeemerContract
+    redeemer = contractData.redeemer
+    minter = contractData.minter
+    newAdmin = contractData.newAdmin
+    newMinter = contractData.newMinter
+    newAdminContract = contractData.newAdminContract
+    newMinterContract = contractData.newMinterContract
+  })
+
+  it("Should not let a non admin user to change the minter", async function () {
+    await expect(newMinterContract.replaceMinterRole(minter.address, newMinter.address))
+      .to.be.revertedWith('AccessControl')
+  })
+
+  it("Should not let random users to change the admin", async function () {
+    await expect(newAdminContract.replaceAdminRole(minter.address, newAdmin.address))
+      .to.be.revertedWith('AccessControl')
+  })
+
+  it("Should not let the new minter to redeem an NFT voucher that's signed by an unauthorized account", async function () {
+    const lazyMinter = new LazyMinter({ contract, signer: newMinter })
+    const voucher = await lazyMinter.createVoucher({
+      uri: "ipfs://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi",
+      parentNFTChainId: 1,
+      parentNFTcontractAddress: "0x0000000000000000000000000000000000000999",
+      parentNFTtokenId: 1,
+    })
+
+    await expect(newMinterContract.redeem(redeemer.address, voucher))
+      .to.be.revertedWith('Signature invalid or unauthorized')
+  });
+
+  it("Should let a new minter mint after being assigned the minter role but not the previous minter", async function () {
+    const tx = await contract.replaceMinterRole(minter.address, newMinter.address)
+    await tx.wait();
+
+    const lazyMinter = new LazyMinter({ contract, signer: newMinter })
+    const voucher = await lazyMinter.createVoucher({
+      uri: "ipfs://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi",
+      parentNFTChainId: 1,
+      parentNFTcontractAddress: "0x0000000000000000000000000000000000000999",
+      parentNFTtokenId: 1,
+    })
+
+    await expect(newMinterContract.redeem(redeemer.address, voucher))
+      .to.emit(newMinterContract, 'Transfer')  // transfer from null address to minter
+      .withArgs('0x0000000000000000000000000000000000000999', newMinter.address, 0)
+      .and.to.emit(newMinterContract, 'Transfer') // transfer from minter to redeemer
+      .withArgs(newMinter.address, redeemer.address, 0);
+
+    const lazyMinterOldMinter = new LazyMinter({ contract, signer: minter })
+    const voucherOldMinter = await lazyMinterOldMinter.createVoucher({
+      uri: "ipfs://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi",
+      parentNFTChainId: 1,
+      parentNFTcontractAddress: "0x0000000000000000000000000000000000000999",
+      parentNFTtokenId: 2,
+    })
+
+    await expect(contract.redeem(redeemer.address, voucherOldMinter))
+      .to.be.revertedWith('Signature invalid or unauthorized')
+  })
+
+  it("Should let a new admin withdraw after being assigned the admin role but not the previous admin", async function () {
+    const tx = await contract.replaceAdminRole(minter.address, newAdmin.address)
+    await tx.wait();
+
+    await expect(newAdminContract.withdraw({ value: 0 }))
+      .not.to.be.revertedWith('AccessControl')
+
+    await expect(contract.withdraw({ value: 0 }))
+      .to.be.revertedWith('AccessControl')
+  })
+
+})
+
+/*
 
 describe("Nucleart - Rules", function () {
   let contract, redeemerContract, redeemer, minter
@@ -557,3 +651,4 @@ describe("Nucleart - Max supply", function () {
       .to.be.revertedWith('All the nucleart warheads have been used')
   })
 })
+*/

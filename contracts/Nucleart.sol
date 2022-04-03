@@ -276,6 +276,24 @@ contract Nucleart is
         return id;
     }
 
+    function replaceAdminRole(address oldAdmin, address newAdmin)
+        public
+        nonReentrant
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        _revokeRole(DEFAULT_ADMIN_ROLE, oldAdmin);
+        _setupRole(DEFAULT_ADMIN_ROLE, newAdmin);
+    }
+
+    function replaceMinterRole(address oldMinter, address newMinter)
+        public
+        nonReentrant
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        _revokeRole(MINTER_ROLE, oldMinter);
+        _setupRole(MINTER_ROLE, newMinter);
+    }
+
     // The following functions are overrides required by Solidity.
 
     function _beforeTokenTransfer(
