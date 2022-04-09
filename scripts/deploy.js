@@ -6,6 +6,7 @@ async function main() {
   await nucleart.deployed();
 
   console.log("Nucleart deployed to:", nucleart.address);
+  console.log(nucleart)
 }
 
 main()
