@@ -56,6 +56,23 @@ cd /home/nucleart
 slither .
 ```
 
+## 🚀 Deploy
+
+```sh
+cp .env.dist .env
+# edit .env and set your own values
+
+# Deploy on hardhat node
+npm run hardhat-node
+npm run deploy:localhost
+
+# Deploy on mumbai
+npm run deploy:mumbai
+
+# Verify contract
+npx hardhat verify --network mumbai <contract_address> <minter_address>
+```
+
 ## 📄 License
 
 [MIT License](./LICENSE)
