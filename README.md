@@ -70,7 +70,7 @@ npm run deploy:localhost
 npm run deploy:mumbai
 
 # Verify contract
-npx hardhat verify --network matic <contract_address>
+npx hardhat verify --network mumbai <contract_address> <minter_address>
 ```
 
 ## 📄 License
