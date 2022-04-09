@@ -63,7 +63,7 @@ cp .env.dist .env
 # edit .env and set your own values
 
 # Deploy on hardhat node
-npm run node
+npm run hardhat-node
 npm run deploy:localhost
 
 # Deploy on mumbai
