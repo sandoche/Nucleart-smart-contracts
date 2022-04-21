@@ -60,6 +60,8 @@ contract Nucleart is
         address parentNFTcontractAddress;
         /// @notice The token id of the parent NFT.
         uint256 parentNFTtokenId;
+        /// @notice The owner address of the parent NFT.
+        address parentNFTownerAddress;
         /// @notice the EIP-712 signature of all other fields in the NFTVoucher struct. For a voucher to be valid, it must be signed by an account with the MINTER_ROLE.
         bytes signature;
     }
@@ -86,8 +88,14 @@ contract Nucleart is
             "Signature invalid or unauthorized"
         );
 
-        // make sure that the redeemer is paying enough to cover the buyer's cost
+        // make sure that the redeemer is the owner of the NFT
         require(msg.value >= getCurrentPrice(), "Insufficient funds to redeem");
+
+        // make sure that the redeemer is paying enough to cover the buyer's cost
+        require(
+            redeemer == voucher.parentNFTownerAddress,
+            "The redeemer should own this NFT"
+        );
 
         // make sure that we didn't overpass the max supply
         require(
@@ -156,12 +164,13 @@ contract Nucleart is
                 keccak256(
                     abi.encode(
                         keccak256(
-                            "NFTVoucher(string uri,uint256 parentNFTChainId,address parentNFTcontractAddress,uint256 parentNFTtokenId)"
+                            "NFTVoucher(string uri,uint256 parentNFTChainId,address parentNFTcontractAddress,uint256 parentNFTtokenId,address parentNFTownerAddress)"
                         ),
                         keccak256(bytes(voucher.uri)),
                         voucher.parentNFTChainId,
                         voucher.parentNFTcontractAddress,
-                        voucher.parentNFTtokenId
+                        voucher.parentNFTtokenId,
+                        voucher.parentNFTownerAddress
                     )
                 )
             );
