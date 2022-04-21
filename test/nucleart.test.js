@@ -238,6 +238,21 @@ describe("Nucleart - Rules", function () {
     minter = contractData.minter;
   });
 
+  it("Should fail to nuke an NFT that's not owned by the redeemer", async function () {
+    const lazyMinter = new LazyMinter({ contract, signer: minter });
+    const voucher = await lazyMinter.createVoucher({
+      uri: "ipfs://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi",
+      parentNFTChainId: 1,
+      parentNFTcontractAddress: "0x0000000000000000000000000000000000000999",
+      parentNFTtokenId: 1,
+      parentNFTownerAddress: minter.address,
+    });
+
+    await expect(
+      redeemerContract.redeem(redeemer.address, voucher)
+    ).to.be.revertedWith("The redeemer should own this NFT");
+  });
+
   it("Should fail to nuke an NFT that's already been nuked", async function () {
     const lazyMinter = new LazyMinter({ contract, signer: minter });
     const voucher = await lazyMinter.createVoucher({

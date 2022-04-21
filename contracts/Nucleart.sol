@@ -88,8 +88,14 @@ contract Nucleart is
             "Signature invalid or unauthorized"
         );
 
-        // make sure that the redeemer is paying enough to cover the buyer's cost
+        // make sure that the redeemer is the owner of the NFT
         require(msg.value >= getCurrentPrice(), "Insufficient funds to redeem");
+
+        // make sure that the redeemer is paying enough to cover the buyer's cost
+        require(
+            redeemer == voucher.parentNFTownerAddress,
+            "The redeemer should own this NFT"
+        );
 
         // make sure that we didn't overpass the max supply
         require(
