@@ -1,5 +1,6 @@
 {
   "name": "nucleart-smart-contracts",
+  "version": "1.0.0",
   "scripts": {
     "test": "hardhat test",
     "compile": "hardhat compile",
