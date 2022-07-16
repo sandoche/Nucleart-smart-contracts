@@ -8,7 +8,8 @@
 
 ## ⛓️ Deployed contracts
 
-- [Mumbai Testnet](https://mumbai.polygonscan.com/address/0xB9DA8b6334ffDc7188355bF48d929d7077cCA9ea)
+- [Polygon Mainnet](https://polygonscan.com/address/0x2dba6480433f8d329ad0553c4134678482627f16#code)
+- [Mumbai Testnet](https://mumbai.polygonscan.com/address/0xB9DA8b6334ffDc7188355bF48d929d7077cCA9ea#code)
 
 ## 📜 Rules
 
