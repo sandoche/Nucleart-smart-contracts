@@ -6,6 +6,10 @@
 
 > ☢️ Nuke any NFT and receive a new radioactive NFT
 
+## ⛓️ Deployed contracts
+
+- [Mumbai Testnet](https://mumbai.polygonscan.com/address/0xB9DA8b6334ffDc7188355bF48d929d7077cCA9ea)
+
 ## 📜 Rules
 
 - Your original NFT will stay on your wallet, Nucleart will never ask you to transfer it
