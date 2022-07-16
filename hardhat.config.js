@@ -1,13 +1,13 @@
-require('dotenv').config();
-require("@nomiclabs/hardhat-waffle");
-require("@nomiclabs/hardhat-etherscan");
+require('dotenv').config()
+require('@nomiclabs/hardhat-waffle')
+require('@nomiclabs/hardhat-etherscan')
 
 /**
  * @type import('hardhat/config').HardhatUserConfig
  */
 module.exports = {
   solidity: {
-    version: "0.8.9",
+    version: '0.8.9',
     settings: {
       optimizer: {
         enabled: true,
@@ -19,15 +19,19 @@ module.exports = {
     hardhat: {
       chainId: 1337,
       accounts: {
-        mnemonic: "test test test test test test test test test test test junk",
+        mnemonic: 'test test test test test test test test test test test junk',
         initialIndex: 0,
-        accountsBalance: "1000000000000000000000000000000000000000000000000000"
+        accountsBalance: '1000000000000000000000000000000000000000000000000000'
       }
     },
     mumbai: {
-      url: "https://rpc-mumbai.maticvigil.com",
+      url: 'https://rpc-mumbai.maticvigil.com',
       accounts: [process.env.PRIVATE_KEY]
     },
+    polygon: {
+      url: 'https://rpc-mainnet.maticvigil.com',
+      accounts: [process.env.PRIVATE_KEY]
+    }
   },
   etherscan: {
     apiKey: process.env.ETHERSCAN_API_KEY
